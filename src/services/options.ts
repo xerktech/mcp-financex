@@ -2,7 +2,10 @@
  * Options trading service with Yahoo Finance integration
  */
 
-import yahooFinance from 'yahoo-finance2';
+import YahooFinance from 'yahoo-finance2';
+
+// Initialize Yahoo Finance instance
+const yahooFinance = new YahooFinance();
 import { std } from 'mathjs';
 import {
   OptionsChain,
@@ -35,22 +38,26 @@ export class OptionsService {
       async () => {
         return await withRetry(async () => {
           try {
-            const options = await yahooFinance.options(symbol, {
-              date: expirationDate ? new Date(expirationDate) : undefined
-            }, { validateResult: false }) as any;
+            const optionsParams = expirationDate
+              ? { date: new Date(expirationDate) }
+              : {};
+            const options = await yahooFinance.options(symbol, optionsParams, { validateResult: false }) as any;
 
-            if (!options) {
+            if (!options || !options.options || options.options.length === 0) {
               throw new Error('No options data available');
             }
+
+            // Get the first options chain (for the specified or nearest expiration)
+            const optionChain = options.options[0];
 
             // Get current underlying price
             const quote = await this.yahooService.getQuote(symbol);
 
             return {
               symbol,
-              expirationDate: options.expirationDate || new Date(),
-              calls: options.calls?.map(this.transformOptionContract) || [],
-              puts: options.puts?.map(this.transformOptionContract) || [],
+              expirationDate: optionChain.expirationDate || new Date(),
+              calls: optionChain.calls?.map(this.transformOptionContract) || [],
+              puts: optionChain.puts?.map(this.transformOptionContract) || [],
               underlyingPrice: quote.regularMarketPrice,
               timestamp: new Date()
             };
@@ -296,6 +303,11 @@ export class OptionsService {
       async () => {
         // Get options chain
         const chain = await this.getOptionsChain(symbol, expirationDate);
+
+        // Check if we have any options data
+        if (chain.calls.length === 0 && chain.puts.length === 0) {
+          throw new Error('No options data available for this symbol and expiration date');
+        }
 
         // Get unique strike prices
         const strikes = new Set<number>();
