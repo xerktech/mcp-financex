@@ -606,7 +606,7 @@ This project uses GitHub Actions for continuous integration and deployment:
 ### Automated Workflows
 
 1. **PR Quality Checks** - Runs on every pull request
-   - Security scanning (npm audit, CodeQL, Snyk, TruffleHog)
+   - Security scanning (npm audit, Trivy, TruffleHog)
    - Code quality checks (ESLint, formatting)
    - Build verification
    - Tests across multiple Node.js versions (18.x, 20.x, 22.x)
@@ -623,8 +623,7 @@ This project uses GitHub Actions for continuous integration and deployment:
 See [`.github/workflows/README.md`](.github/workflows/README.md) for detailed workflow documentation.
 
 **Required Secrets (for maintainers):**
-- `NPM_TOKEN` - For publishing to npm registry
-- `SNYK_TOKEN` - For security scanning (optional)
+- `NPM_TOKEN` - For publishing to npm registry (requires 2FA bypass or automation token)
 
 ## Development
 

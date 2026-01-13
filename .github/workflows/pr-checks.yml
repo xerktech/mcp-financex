@@ -104,8 +104,8 @@ jobs:
   #       uses: github/codeql-action/analyze@v3
   #       continue-on-error: true
 
-  snyk-security:
-    name: Snyk Security Scan
+  trivy-security:
+    name: Trivy Security Scan
     runs-on: ubuntu-latest
     continue-on-error: false
 
@@ -113,13 +113,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run Snyk to check for vulnerabilities
-        uses: snyk/actions/node@master
-        continue-on-error: false
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
         with:
-          args: --severity-threshold=high --fail-on=upgradable
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '1'
+
+      - name: Upload Trivy results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
 
   build-test:
     name: Build & Package Test
@@ -176,7 +184,7 @@ jobs:
       - name: Check if required jobs failed
         run: |
           # Only fail on core checks (security-and-quality, build-test)
-          # CodeQL and Dependency Review are optional (need Advanced Security)
+          # Trivy runs separately and will fail independently if vulnerabilities found
           if [[ "${{ needs.security-and-quality.result }}" == "failure" ]] || \
              [[ "${{ needs.build-test.result }}" == "failure" ]]; then
             echo "## ❌ PR Quality Checks Failed" >> $GITHUB_STEP_SUMMARY
@@ -185,10 +193,6 @@ jobs:
             echo "- Security and Quality: ${{ needs.security-and-quality.result }}" >> $GITHUB_STEP_SUMMARY
             echo "- Build and Package: ${{ needs.build-test.result }}" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Optional checks (require GitHub Advanced Security):" >> $GITHUB_STEP_SUMMARY
-            echo "- CodeQL Analysis: ${{ needs.codeql-analysis.result }}" >> $GITHUB_STEP_SUMMARY
-            echo "- Dependency Review: ${{ needs.dependency-review.result }}" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
             echo "**Please fix the failing required checks before merging.**" >> $GITHUB_STEP_SUMMARY
             exit 1
           else
@@ -196,10 +200,6 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "✅ Security and quality checks completed" >> $GITHUB_STEP_SUMMARY
             echo "✅ Build and package test completed" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Optional checks (require GitHub Advanced Security):" >> $GITHUB_STEP_SUMMARY
-            echo "- CodeQL Analysis: ${{ needs.codeql-analysis.result }}" >> $GITHUB_STEP_SUMMARY
-            echo "- Dependency Review: ${{ needs.dependency-review.result }}" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "**This PR is ready to merge! 🚀**" >> $GITHUB_STEP_SUMMARY
           fi
