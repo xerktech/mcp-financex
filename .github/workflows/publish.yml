@@ -68,7 +68,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -240,9 +240,10 @@ jobs:
       - name: Push version bump to main
         if: steps.version_check.outputs.needs_bump == 'true'
         run: |
-          git push origin main --follow-tags
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # This will succeed if GH_PAT is configured with bypass permissions
+          # Otherwise it will fail but continue without breaking the workflow
+          git push origin main --follow-tags || echo "⚠️ Could not push to main (needs GH_PAT with bypass permissions)"
+        continue-on-error: true
 
       - name: Create package tarball
         run: npm pack

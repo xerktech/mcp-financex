@@ -94,7 +94,8 @@ export const searchTickerInputSchema = z.object({
  */
 export const getMarketNewsInputSchema = z.object({
   symbol: symbolSchema.optional(),
-  limit: z.number().int().positive().max(50).optional().default(10)
+  limit: z.number().int().positive().max(50).optional(),
+  comprehensive: z.boolean().optional()
 });
 
 /**
