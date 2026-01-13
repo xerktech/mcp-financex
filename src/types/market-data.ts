@@ -58,6 +58,169 @@ export interface NewsArticle {
   };
   relatedTickers?: string[];
   summary?: string;
+  // Enhanced fields for better context
+  uuid?: string;
+  categories?: string[];
+  relatedSymbolsContext?: {
+    symbol: string;
+    relationship: string; // e.g., "competitor", "supplier", "partner"
+  }[];
+}
+
+export interface CompanyFundamentals {
+  // Valuation metrics
+  marketCap?: number;
+  enterpriseValue?: number;
+  trailingPE?: number;
+  forwardPE?: number;
+  pegRatio?: number;
+  priceToBook?: number;
+  priceToSales?: number;
+
+  // Profitability metrics
+  profitMargins?: number;
+  operatingMargins?: number;
+  returnOnAssets?: number;
+  returnOnEquity?: number;
+
+  // Growth metrics
+  revenueGrowth?: number;
+  earningsGrowth?: number;
+
+  // Financial health
+  totalDebt?: number;
+  debtToEquity?: number;
+  currentRatio?: number;
+  quickRatio?: number;
+
+  // Dividend info
+  dividendYield?: number;
+  dividendRate?: number;
+  payoutRatio?: number;
+  exDividendDate?: Date;
+
+  // Analyst data
+  targetMeanPrice?: number;
+  targetHighPrice?: number;
+  targetLowPrice?: number;
+  numberOfAnalystOpinions?: number;
+  recommendationMean?: number; // 1.0=Strong Buy, 5.0=Sell
+  recommendationKey?: string;
+}
+
+export interface UpcomingEvent {
+  type: 'earnings' | 'dividend' | 'split' | 'conference' | 'other';
+  date: Date;
+  description?: string;
+  estimatedEPS?: number;
+}
+
+export interface InsiderTransaction {
+  filingDate: Date;
+  transactionDate: Date;
+  insiderName: string;
+  position?: string;
+  transactionType: 'Buy' | 'Sell' | 'Option Exercise' | 'Other';
+  shares: number;
+  value: number;
+  sharesOwned?: number;
+}
+
+export interface InstitutionalHolder {
+  organization: string;
+  shares: number;
+  value: number;
+  percentHeld: number;
+  reportDate: Date;
+}
+
+export interface CompanyProfile {
+  symbol: string;
+  longName?: string;
+  industry?: string;
+  sector?: string;
+  website?: string;
+  fullTimeEmployees?: number;
+  longBusinessSummary?: string;
+
+  // Key personnel
+  officers?: {
+    name: string;
+    title: string;
+    age?: number;
+    totalPay?: number;
+  }[];
+}
+
+export interface MarketContext {
+  symbol: string;
+  timestamp: Date;
+
+  // Company basics
+  profile?: CompanyProfile;
+
+  // Financial fundamentals
+  fundamentals?: CompanyFundamentals;
+
+  // News and sentiment
+  recentNews: NewsArticle[];
+  newsCount: number;
+
+  // Upcoming catalysts
+  upcomingEvents?: UpcomingEvent[];
+
+  // Institutional activity
+  institutionalOwnership?: {
+    percentHeld: number;
+    institutionsCount: number;
+    topHolders?: InstitutionalHolder[];
+  };
+
+  // Insider activity
+  insiderTransactions?: {
+    netInsiderActivity: number; // Net buying/selling last 6 months
+    recentTransactions?: InsiderTransaction[];
+  };
+
+  // Short interest (volatility indicator)
+  shortInterest?: {
+    shortRatio?: number;
+    shortPercentOfFloat?: number;
+    sharesShort?: number;
+    dateShortInterest?: Date;
+  };
+
+  // Options activity (implied volatility)
+  optionsActivity?: {
+    impliedVolatility?: number;
+    putCallRatio?: number;
+    optionsVolume?: number;
+  };
+
+  // Analyst sentiment
+  analystRatings?: {
+    strongBuy: number;
+    buy: number;
+    hold: number;
+    sell: number;
+    strongSell: number;
+    consensusRating: string;
+  };
+
+  // Sector/industry context
+  sectorPerformance?: {
+    sector: string;
+    sectorChange: number;
+    sectorChangePercent: number;
+  };
+
+  // Related companies (competitors, partners)
+  relatedCompanies?: {
+    symbol: string;
+    name: string;
+    relationship: string;
+    correlation?: number;
+  }[];
 }
 
 export interface SearchResult {
