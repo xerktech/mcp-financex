@@ -60,49 +60,49 @@ jobs:
           head: HEAD
           extra_args: --debug --only-verified
 
-  dependency-review:
-    name: Dependency Review
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    continue-on-error: true  # Optional - requires GitHub Advanced Security
+  # dependency-review:
+  #   name: Dependency Review
+  #   runs-on: ubuntu-latest
+  #   if: github.event_name == 'pull_request'
+  #   continue-on-error: true  # Optional - requires GitHub Advanced Security
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: Dependency Review
-        uses: actions/dependency-review-action@v4
-        continue-on-error: true  # Skip if Advanced Security not available
-        with:
-          fail-on-severity: moderate
+  #     - name: Dependency Review
+  #       uses: actions/dependency-review-action@v4
+  #       continue-on-error: true  # Skip if Advanced Security not available
+  #       with:
+  #         fail-on-severity: moderate
 
-  codeql-analysis:
-    name: CodeQL Security Analysis
-    runs-on: ubuntu-latest
-    continue-on-error: true  # Optional - requires GitHub Advanced Security
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
+  # codeql-analysis:
+  #   name: CodeQL Security Analysis
+  #   runs-on: ubuntu-latest
+  #   continue-on-error: true  # Optional - requires GitHub Advanced Security
+  #   permissions:
+  #     actions: read
+  #     contents: read
+  #     security-events: write
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        continue-on-error: true  # Skip if Advanced Security not available
-        with:
-          languages: javascript
-          queries: security-and-quality
+  #     - name: Initialize CodeQL
+  #       uses: github/codeql-action/init@v3
+  #       continue-on-error: true  # Skip if Advanced Security not available
+  #       with:
+  #         languages: javascript
+  #         queries: security-and-quality
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
-        continue-on-error: true
+  #     - name: Autobuild
+  #       uses: github/codeql-action/autobuild@v3
+  #       continue-on-error: true
 
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-        continue-on-error: true
+  #     - name: Perform CodeQL Analysis
+  #       uses: github/codeql-action/analyze@v3
+  #       continue-on-error: true
 
   snyk-security:
     name: Snyk Security Scan

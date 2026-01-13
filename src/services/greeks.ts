@@ -65,7 +65,7 @@ export class GreeksCalculator {
           const hvResult = await this.optionsService.calculateHistoricalVolatility(symbol, [30]);
           impliedVolatility = hvResult.periods[0].annualized / 100;
         }
-      } catch (error) {
+      } catch {
         // Fallback to historical volatility
         const hvResult = await this.optionsService.calculateHistoricalVolatility(symbol, [30]);
         impliedVolatility = hvResult.periods[0].annualized / 100;
@@ -220,7 +220,7 @@ export class GreeksCalculator {
       } else {
         return blackScholes.blackScholes(S, K, T, sigma, r, 'put');
       }
-    } catch (error) {
+    } catch {
       // Fallback to manual calculation if library fails
       const adjustedS = S * Math.exp(-q * T);
       const d1 = (Math.log(adjustedS / K) + (r + sigma ** 2 / 2) * T) / (sigma * Math.sqrt(T));

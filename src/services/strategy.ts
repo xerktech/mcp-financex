@@ -183,7 +183,7 @@ export class StrategyAnalyzer {
   private calculateProfitLoss(
     strategy: OptionsStrategy,
     legs: OptionLeg[],
-    underlyingPrice: number
+    _underlyingPrice: number
   ): {
     maxProfit: number;
     maxLoss: number;
@@ -195,7 +195,7 @@ export class StrategyAnalyzer {
     const maxStrike = strikes[strikes.length - 1];
 
     // Calculate initial credit/debit
-    const initialCredit = legs.reduce((sum, leg) => {
+    const _initialCredit = legs.reduce((sum, leg) => {
       const multiplier = leg.action === 'buy' ? -1 : 1;
       return sum + (leg.premium || 0) * multiplier * leg.quantity * 100;
     }, 0);
@@ -281,9 +281,9 @@ export class StrategyAnalyzer {
    */
   private generatePLChart(
     legs: OptionLeg[],
-    underlyingPrice: number,
-    maxProfit: number,
-    maxLoss: number
+    _underlyingPrice: number,
+    _maxProfit: number,
+    _maxLoss: number
   ): Array<{ price: number; profitLoss: number; profitLossPercent: number }> {
     const strikes = legs.map(l => l.strike).sort((a, b) => a - b);
     const minStrike = strikes[0];

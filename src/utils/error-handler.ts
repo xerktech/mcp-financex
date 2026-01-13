@@ -188,7 +188,9 @@ export class ErrorHandler {
    * Check if an error is from Yahoo Finance
    */
   private static isYahooFinanceError(error: any): boolean {
-    if (!error) return false;
+    if (!error) {
+return false;
+}
 
     const message = error.message || String(error);
     const errorString = message.toLowerCase();
