@@ -35,15 +35,17 @@ npm audit --audit-level=high
 - No high or critical severity vulnerabilities
 - **Fix:** Run `npm audit fix` or update dependencies
 
-### 5. **CodeQL Security Analysis** ❌ BLOCKS
+### 5. **CodeQL Security Analysis** ⚠️ OPTIONAL
 - No critical security vulnerabilities in code
 - Checks for common security issues
-- **Fix:** Review CodeQL findings and fix security issues
+- **Requires:** GitHub Advanced Security (paid plan)
+- **Status:** Runs but won't block PR if unavailable
 
-### 6. **Dependency Review** ❌ BLOCKS
+### 6. **Dependency Review** ⚠️ OPTIONAL
 - New dependencies must not have moderate+ vulnerabilities
 - Checks for vulnerable dependencies in PRs
-- **Fix:** Choose a different package or update to safe version
+- **Requires:** GitHub Advanced Security (paid plan)
+- **Status:** Runs but won't block PR if unavailable
 
 ### 7. **Build & Package** ❌ BLOCKS
 - Build must succeed
@@ -87,8 +89,8 @@ npm outdated
 | TypeScript | ✅ Yes | All Node versions | ❌ No |
 | ESLint | ✅ Yes | All Node versions | ❌ No |
 | npm audit (high/critical) | ✅ Yes | All Node versions | ❌ No |
-| CodeQL | ✅ Yes | Latest Node | ❌ No |
-| Dependency Review | ✅ Yes | PRs only | ❌ No |
+| CodeQL | ⚠️ Optional* | Latest Node | ✅ Yes |
+| Dependency Review | ⚠️ Optional* | PRs only | ✅ Yes |
 | Build & Package | ✅ Yes | Latest Node | ❌ No |
 | Snyk | ✅ Yes* | PRs on public repos | ⚠️ Optional |
 | Formatting | ❌ No | All Node versions | ✅ Yes |
