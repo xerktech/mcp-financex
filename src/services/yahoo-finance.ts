@@ -18,8 +18,7 @@ import {
   CompanyProfile,
   CompanyFundamentals,
   UpcomingEvent,
-  InsiderTransaction,
-  InstitutionalHolder
+  InsiderTransaction
 } from '../types/market-data.js';
 import { cacheService, CacheService, CacheTTL } from './cache.js';
 import { ErrorHandler, withRetry } from '../utils/error-handler.js';
@@ -548,9 +547,15 @@ export class YahooFinanceService {
    */
   private categorizeTransactionType(text: string): 'Buy' | 'Sell' | 'Option Exercise' | 'Other' {
     const lowerText = (text || '').toLowerCase();
-    if (lowerText.includes('buy') || lowerText.includes('purchase')) return 'Buy';
-    if (lowerText.includes('sell') || lowerText.includes('sale')) return 'Sell';
-    if (lowerText.includes('option') || lowerText.includes('exercise')) return 'Option Exercise';
+    if (lowerText.includes('buy') || lowerText.includes('purchase')) {
+      return 'Buy';
+    }
+    if (lowerText.includes('sell') || lowerText.includes('sale')) {
+      return 'Sell';
+    }
+    if (lowerText.includes('option') || lowerText.includes('exercise')) {
+      return 'Option Exercise';
+    }
     return 'Other';
   }
 
@@ -690,7 +695,6 @@ export class YahooFinanceService {
   private categorizeNews(article: any): string[] {
     const categories: string[] = [];
     const title = (article.title || '').toLowerCase();
-    const type = (article.type || '').toLowerCase();
 
     // Earnings-related
     if (title.includes('earnings') || title.includes('revenue') || title.includes('profit') ||

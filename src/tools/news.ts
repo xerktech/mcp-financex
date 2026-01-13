@@ -62,12 +62,12 @@ export async function handleGetMarketNews(args: unknown) {
     const shouldFetchComprehensive = comprehensive !== false && !!symbol;
     const articleLimit = limit || (shouldFetchComprehensive ? 20 : 10);
 
-    if (shouldFetchComprehensive) {
+    if (shouldFetchComprehensive && symbol) {
       // Fetch comprehensive market context
-      const context = await yahooFinanceService.getMarketContext(symbol!, articleLimit);
+      const context = await yahooFinanceService.getMarketContext(symbol, articleLimit);
 
       return {
-        symbol: symbol!,
+        symbol: symbol,
         timestamp: context.timestamp,
         comprehensive: true,
 
