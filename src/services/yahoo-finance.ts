@@ -2,7 +2,10 @@
  * Yahoo Finance service wrapper with caching and error handling
  */
 
-import yahooFinance from 'yahoo-finance2';
+import YahooFinance from 'yahoo-finance2';
+
+// Initialize Yahoo Finance instance
+const yahooFinance = new YahooFinance();
 import {
   QuoteData,
   HistoricalDataPoint,
