@@ -1,7 +1,7 @@
 # MCP FinanceX
 
-[![PR Checks](https://github.com/yourusername/mcp-financex/actions/workflows/pr-checks.yml/badge.svg)](https://github.com/yourusername/mcp-financex/actions/workflows/pr-checks.yml)
-[![Publish](https://github.com/yourusername/mcp-financex/actions/workflows/publish.yml/badge.svg)](https://github.com/yourusername/mcp-financex/actions/workflows/publish.yml)
+[![PR Checks](https://github.com/xerktech/mcp-financex/actions/workflows/pr-checks.yml/badge.svg)](https://github.com/xerktech/mcp-financex/actions/workflows/pr-checks.yml)
+[![Publish](https://github.com/xerktech/mcp-financex/actions/workflows/publish.yml/badge.svg)](https://github.com/xerktech/mcp-financex/actions/workflows/publish.yml)
 [![npm version](https://badge.fury.io/js/mcp-financex.svg)](https://www.npmjs.com/package/mcp-financex)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -45,7 +45,7 @@ A comprehensive Model Context Protocol (MCP) server for real-time stock, cryptoc
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/mcp-financex.git
+git clone https://github.com/xerktech/mcp-financex.git
 cd mcp-financex
 ```
 
@@ -107,7 +107,7 @@ Once published to npm, users can run it directly without installation:
   "mcpServers": {
     "finance": {
       "command": "npx",
-      "args": ["-y", "github:yourusername/mcp-financex"]
+      "args": ["-y", "github:xerktech/mcp-financex"]
     }
   }
 }
@@ -749,7 +749,7 @@ To make this package available for external deployment (so users can run it with
    ```json
    "repository": {
      "type": "git",
-     "url": "git+https://github.com/YOUR_USERNAME/mcp-financex.git"
+     "url": "git+https://github.com/xerktech/mcp-financex.git"
    }
    ```
 
