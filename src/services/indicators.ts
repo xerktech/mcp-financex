@@ -19,7 +19,6 @@ import {
   BollingerBandsResult,
   StochasticResult,
   IndicatorParams,
-  PriceData,
   MACDParams,
   BollingerBandsParams,
   StochasticParams
@@ -406,8 +405,12 @@ export class IndicatorService {
    * Determine RSI signal
    */
   private getRSISignal(rsi: number): 'overbought' | 'oversold' | 'neutral' {
-    if (rsi >= 70) return 'overbought';
-    if (rsi <= 30) return 'oversold';
+    if (rsi >= 70) {
+return 'overbought';
+}
+    if (rsi <= 30) {
+return 'oversold';
+}
     return 'neutral';
   }
 
@@ -418,13 +421,19 @@ export class IndicatorService {
     current: any,
     previous: any
   ): 'bullish' | 'bearish' | null {
-    if (!previous || !current.MACD || !current.signal) return null;
+    if (!previous || !current.MACD || !current.signal) {
+return null;
+}
 
     const currentDiff = current.MACD - current.signal;
     const prevDiff = (previous.MACD || 0) - (previous.signal || 0);
 
-    if (prevDiff <= 0 && currentDiff > 0) return 'bullish';
-    if (prevDiff >= 0 && currentDiff < 0) return 'bearish';
+    if (prevDiff <= 0 && currentDiff > 0) {
+return 'bullish';
+}
+    if (prevDiff >= 0 && currentDiff < 0) {
+return 'bearish';
+}
 
     return null;
   }
@@ -433,8 +442,12 @@ export class IndicatorService {
    * Determine Stochastic signal
    */
   private getStochasticSignal(k: number): 'overbought' | 'oversold' | 'neutral' {
-    if (k >= 80) return 'overbought';
-    if (k <= 20) return 'oversold';
+    if (k >= 80) {
+return 'overbought';
+}
+    if (k <= 20) {
+return 'oversold';
+}
     return 'neutral';
   }
 }

@@ -11,11 +11,10 @@ import {
   DividendInfo,
   HistoricalVolatilityResult,
   MaxPainResult,
-  ImpliedVolatilityData,
-  OptionType
+  ImpliedVolatilityData
 } from '../types/options.js';
 import { yahooFinanceService } from './yahoo-finance.js';
-import { cacheService, CacheService, CacheTTL } from './cache.js';
+import { cacheService, CacheTTL } from './cache.js';
 import { ErrorHandler, withRetry } from '../utils/error-handler.js';
 
 export class OptionsService {
@@ -438,7 +437,9 @@ export class OptionsService {
    * Find ATM (at-the-money) strike price
    */
   private findATMStrike(contracts: OptionContract[], currentPrice: number): number {
-    if (contracts.length === 0) return currentPrice;
+    if (contracts.length === 0) {
+return currentPrice;
+}
 
     return contracts.reduce((closest, contract) => {
       return Math.abs(contract.strike - currentPrice) <

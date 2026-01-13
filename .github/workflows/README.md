@@ -26,16 +26,18 @@ Tests across Node.js versions 18.x, 20.x, 22.x
 - ⚠️ **Formatting issues** - Can be auto-fixed with `npm run format`
 - ⚠️ **Outdated dependencies** - Informational only
 
-#### Dependency Review ❌ BLOCKS PR
+#### Dependency Review ⚠️ OPTIONAL
 - Analyzes dependency changes in PRs
-- **Fails on moderate or higher severity vulnerabilities**
-- Prevents vulnerable dependencies from being added
+- Fails on moderate or higher severity vulnerabilities
+- **Requires GitHub Advanced Security** (paid feature)
+- Runs but won't block if not available
 
-#### CodeQL Security Analysis ❌ BLOCKS PR
+#### CodeQL Security Analysis ⚠️ OPTIONAL
 - GitHub's semantic code analysis
-- **Detects security vulnerabilities and coding errors**
+- Detects security vulnerabilities and coding errors
 - Runs security-and-quality queries
-- **Blocks PR if critical issues found**
+- **Requires GitHub Advanced Security** (paid feature)
+- Runs but won't block if not available
 
 #### Snyk Security Scan ⚠️ OPTIONAL
 - Third-party vulnerability scanning

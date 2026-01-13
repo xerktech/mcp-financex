@@ -1,6 +1,6 @@
 # Dependencies
 node_modules/
-package-lock.json
+# package-lock.json - KEEP THIS for CI/CD reproducibility
 yarn.lock
 pnpm-lock.yaml
 
@@ -40,3 +40,7 @@ coverage/
 .cache/
 temp/
 tmp/
+tmpclaude-*
+
+# Package tarballs (created during testing)
+*.tgz
