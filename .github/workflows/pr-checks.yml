@@ -2,9 +2,7 @@ name: PR Quality Checks
 
 on:
   pull_request:
-    branches: [ main, develop ]
-  push:
-    branches: [ develop ]
+    branches: main
 
 jobs:
   security-and-quality:
