@@ -170,7 +170,7 @@ jobs:
   pr-summary:
     name: PR Summary
     runs-on: ubuntu-latest
-    needs: [security-and-quality, build-test, codeql-analysis, dependency-review]
+    needs: [security-and-quality, build-test]
     if: always()
 
     steps:
