@@ -2,7 +2,9 @@ name: PR Quality Checks
 
 on:
   pull_request:
-    branches: main
+    branches: 
+      - main
+  workflow_dispatch:
 
 jobs:
   security-and-quality:
