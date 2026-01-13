@@ -42,11 +42,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/mcp-financex.git"
+    "url": "git+https://github.com/xerktech/mcp-financex.git"
   },
-  "homepage": "https://github.com/yourusername/mcp-financex#readme",
+  "homepage": "https://github.com/xerktech/mcp-financex#readme",
   "bugs": {
-    "url": "https://github.com/yourusername/mcp-financex/issues"
+    "url": "https://github.com/xerktech/mcp-financex/issues"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
