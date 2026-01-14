@@ -1,6 +1,6 @@
 {
   "name": "mcp-financex",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "MCP server for real-time stock and cryptocurrency analysis using Yahoo Finance",
   "type": "module",
   "main": "dist/index.js",
