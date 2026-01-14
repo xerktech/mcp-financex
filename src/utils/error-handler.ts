@@ -37,6 +37,11 @@ export class ErrorHandler {
       return this.handleYahooError(error);
     }
 
+    // Handle SEC EDGAR errors
+    if (this.isSECError(error)) {
+      return this.handleSECError(error);
+    }
+
     // Handle standard Error instances
     if (error instanceof Error) {
       return this.handleGenericError(error);
@@ -151,6 +156,84 @@ export class ErrorHandler {
   }
 
   /**
+   * Handle SEC EDGAR API errors
+   */
+  private static handleSECError(error: any): FinanceError {
+    const message = error.message || String(error);
+
+    // SEC rate limiting (403 or explicit rate limit message)
+    if (
+      message.includes('403') ||
+      message.includes('rate limit') ||
+      message.includes('Forbidden')
+    ) {
+      return new FinanceError(
+        'SEC.gov rate limit exceeded. Please wait 10 seconds and try again.',
+        'SEC_RATE_LIMIT',
+        429,
+        { hint: 'SEC limits requests to 10 per second' }
+      );
+    }
+
+    // CIK not found
+    if (
+      message.includes('CIK not found') ||
+      message.includes('No matching Ticker Symbol')
+    ) {
+      return new FinanceError(
+        'Company not found in SEC database. Symbol may be incorrect or not publicly traded.',
+        'CIK_NOT_FOUND',
+        404
+      );
+    }
+
+    // No Form 4 filings
+    if (
+      message.includes('No filings found') ||
+      message.includes('No results found')
+    ) {
+      return new FinanceError(
+        'No insider trading filings found for this company.',
+        'NO_FILINGS',
+        404
+      );
+    }
+
+    // XML parsing error
+    if (
+      message.includes('XML parse') ||
+      message.includes('Invalid XML') ||
+      message.includes('parse error')
+    ) {
+      return new FinanceError(
+        'Failed to parse SEC filing data. The filing may be malformed.',
+        'XML_PARSE_ERROR',
+        500
+      );
+    }
+
+    // SEC service unavailable
+    if (
+      message.includes('503') ||
+      message.includes('Service Unavailable')
+    ) {
+      return new FinanceError(
+        'SEC.gov service is temporarily unavailable. Please try again later.',
+        'SEC_UNAVAILABLE',
+        503
+      );
+    }
+
+    // Generic SEC error
+    return new FinanceError(
+      'Failed to fetch data from SEC EDGAR. Please try again later.',
+      'SEC_ERROR',
+      502,
+      { originalMessage: message }
+    );
+  }
+
+  /**
    * Handle generic Error instances
    */
   private static handleGenericError(error: Error): FinanceError {
@@ -203,6 +286,26 @@ return false;
       error.type === 'yf-error' ||
       error.name === 'FailedYahooValidationError' ||
       error.name === 'InvalidOptionsError'
+    );
+  }
+
+  /**
+   * Check if an error is from SEC EDGAR
+   */
+  private static isSECError(error: any): boolean {
+    if (!error) {
+      return false;
+    }
+
+    const message = error.message || String(error);
+    const errorString = message.toLowerCase();
+
+    return (
+      errorString.includes('sec') ||
+      errorString.includes('edgar') ||
+      errorString.includes('cik') ||
+      errorString.includes('form 4') ||
+      error.type === 'sec-error'
     );
   }
 

@@ -120,10 +120,54 @@ export interface InsiderTransaction {
   transactionDate: Date;
   insiderName: string;
   position?: string;
-  transactionType: 'Buy' | 'Sell' | 'Option Exercise' | 'Other';
+  transactionType: 'Buy' | 'Sell' | 'Option Exercise' | 'Gift' | 'Other';
   shares: number;
   value: number;
   sharesOwned?: number;
+
+  // SEC-specific fields for Form 4 filings
+  pricePerShare?: number;
+  securityType?: string;
+  transactionCode?: string;      // SEC codes (P=Purchase, S=Sale, M=Exercise, etc.)
+  formType?: 'Form 4' | 'Form 3' | 'Form 5';
+  filingUrl?: string;
+  issuerCik?: string;
+  issuerName?: string;
+  issuerTicker?: string;
+  directOrIndirect?: 'D' | 'I';  // D=Direct ownership, I=Indirect
+}
+
+export interface InsiderTradingAnalysis {
+  symbol?: string;
+  companyName?: string;
+  cik?: string;
+  timestamp: Date;
+
+  // Summary statistics
+  totalTransactions: number;
+  netShares: number;           // Positive = net buying, negative = net selling
+  netValue: number;
+
+  // Breakdown by transaction type
+  buyTransactions: number;
+  sellTransactions: number;
+  exerciseTransactions: number;
+  otherTransactions: number;
+
+  // Recent transactions
+  recentTransactions: InsiderTransaction[];
+
+  // Top insiders (by transaction value)
+  topInsiders?: {
+    name: string;
+    position: string;
+    totalValue: number;
+    netShares: number;
+  }[];
+
+  // Company context (when symbol provided)
+  profile?: CompanyProfile;
+  fundamentals?: CompanyFundamentals;
 }
 
 export interface InstitutionalHolder {
