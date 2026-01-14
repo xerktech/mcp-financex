@@ -2,6 +2,8 @@
  * Technical indicators service using technicalindicators library
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import {
   RSI,
   MACD,

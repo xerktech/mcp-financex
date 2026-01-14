@@ -14,6 +14,16 @@ import {
 } from './market-summary.js';
 
 /**
+ * Resource data type - flexible structure for MCP resources
+ */
+type ResourceData = Record<string, unknown>;
+
+/**
+ * Resource handler function type
+ */
+type ResourceHandler = (uri: string) => Promise<ResourceData>;
+
+/**
  * All available resources
  */
 export const resources = [
@@ -25,7 +35,7 @@ export const resources = [
 /**
  * Resource handlers mapped by URI pattern
  */
-export const resourceHandlers: Record<string, (uri: string) => Promise<any>> = {
+export const resourceHandlers: Record<string, ResourceHandler> = {
   'watchlist': readWatchlistResource,
   'market://summary': readMarketSummaryResource,
   'market://trending': readTrendingResource
@@ -34,7 +44,7 @@ export const resourceHandlers: Record<string, (uri: string) => Promise<any>> = {
 /**
  * Get resource handler for URI
  */
-export function getResourceHandler(uri: string): ((uri: string) => Promise<any>) | undefined {
+export function getResourceHandler(uri: string): ResourceHandler | undefined {
   // Check for exact match first
   if (resourceHandlers[uri]) {
     return resourceHandlers[uri];

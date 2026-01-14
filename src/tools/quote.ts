@@ -47,7 +47,7 @@ export async function handleGetQuote(args: unknown) {
 
     // Filter fields if specified
     if (fields && fields.length > 0) {
-      const filtered: any = { symbol: quote.symbol };
+      const filtered: Record<string, unknown> = { symbol: quote.symbol };
       fields.forEach(field => {
         if (field in quote) {
           filtered[field] = quote[field as keyof typeof quote];

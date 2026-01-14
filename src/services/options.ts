@@ -2,6 +2,8 @@
  * Options trading service with Yahoo Finance integration
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import YahooFinance from 'yahoo-finance2';
 
 // Initialize Yahoo Finance instance

@@ -109,7 +109,7 @@ export class FinanceMCPServer {
   /**
    * Execute a tool by name
    */
-  private async executeTool(name: string, args: any): Promise<any> {
+  private async executeTool(name: string, args: unknown): Promise<unknown> {
     const handler = toolHandlers[name];
 
     if (!handler) {
@@ -126,7 +126,7 @@ export class FinanceMCPServer {
   /**
    * Read a resource by URI
    */
-  private async readResource(uri: string): Promise<any> {
+  private async readResource(uri: string): Promise<Record<string, unknown>> {
     const handler = getResourceHandler(uri);
 
     if (!handler) {

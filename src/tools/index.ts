@@ -54,7 +54,7 @@ export const tools = [
 /**
  * Tool handlers mapped by name
  */
-export const toolHandlers: Record<string, (args: unknown) => Promise<any>> = {
+export const toolHandlers: Record<string, (args: unknown) => Promise<unknown>> = {
   // Stock & Crypto handlers
   'get_quote': handleGetQuote,
   'get_quote_batch': handleGetBatchQuote,

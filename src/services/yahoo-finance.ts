@@ -2,6 +2,8 @@
  * Yahoo Finance service wrapper with caching and error handling
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import YahooFinance from 'yahoo-finance2';
 
 // Initialize Yahoo Finance instance

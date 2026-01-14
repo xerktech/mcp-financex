@@ -122,7 +122,7 @@ export async function handleGetMarketNews(args: unknown) {
 /**
  * Extract unique categories from news articles
  */
-function extractUniqueCategories(articles: any[]): string[] {
+function extractUniqueCategories(articles: Array<{ categories?: string[] }>): string[] {
   const categoriesSet = new Set<string>();
   articles.forEach(article => {
     article.categories?.forEach((cat: string) => categoriesSet.add(cat));
