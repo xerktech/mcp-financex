@@ -99,6 +99,22 @@ export const getMarketNewsInputSchema = z.object({
 });
 
 /**
+ * Transaction type validation for insider trades
+ */
+export const transactionTypeSchema = z.enum(['buy', 'sell', 'all']);
+
+/**
+ * Insider trades tool input schema
+ */
+export const getInsiderTradesInputSchema = z.object({
+  symbol: symbolSchema.optional(),
+  limit: z.number().int().positive().max(100).optional(),
+  transactionType: transactionTypeSchema.optional(),
+  startDate: dateSchema.optional(),
+  includeCompanyInfo: z.boolean().optional()
+});
+
+/**
  * Batch quote tool input schema
  */
 export const getBatchQuoteInputSchema = z.object({

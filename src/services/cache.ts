@@ -14,6 +14,9 @@ export const CacheTTL = {
   SEARCH: parseInt(process.env.CACHE_SEARCH_TTL || '3600', 10),
   INDICATOR: parseInt(process.env.CACHE_INDICATOR_TTL || '300', 10),
   MARKET_SUMMARY: 60, // 1 minute
+  INSIDER_TRADES: 3600, // 1 hour (insider data changes infrequently)
+  CIK_MAPPING: 604800, // 7 days (CIKs don't change)
+  COMPANY_TICKERS: 86400, // 24 hours (updated daily)
   DEFAULT: parseInt(process.env.CACHE_DEFAULT_TTL || '300', 10)
 } as const;
 
@@ -27,7 +30,10 @@ export const CachePrefix = {
   SEARCH: 'search',
   INDICATOR: 'indicator',
   MARKET: 'market',
-  WATCHLIST: 'watchlist'
+  WATCHLIST: 'watchlist',
+  INSIDER_TRADES: 'insider_trades',
+  CIK_MAP: 'cik_map',
+  COMPANY_TICKERS: 'sec_company_tickers'
 } as const;
 
 export class CacheService {
