@@ -2,6 +2,8 @@
  * Error handling utilities for the MCP Finance server
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { ZodError } from 'zod';
 
 export class FinanceError extends Error {

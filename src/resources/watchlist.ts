@@ -81,7 +81,7 @@ export async function clearWatchlist(name: string = 'default'): Promise<void> {
 /**
  * Handle watchlist resource read
  */
-export async function readWatchlistResource(uri: string): Promise<any> {
+export async function readWatchlistResource(uri: string): Promise<Record<string, unknown>> {
   // Parse watchlist name from URI (format: watchlist://name)
   const name = uri.replace('watchlist://', '');
 

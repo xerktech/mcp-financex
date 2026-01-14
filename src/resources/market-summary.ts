@@ -27,7 +27,7 @@ export const trendingResource = {
 /**
  * Handle market summary resource read
  */
-export async function readMarketSummaryResource(): Promise<any> {
+export async function readMarketSummaryResource(): Promise<Record<string, unknown>> {
   const summary = await yahooFinanceService.getMarketSummary();
 
   return {
@@ -39,7 +39,7 @@ export async function readMarketSummaryResource(): Promise<any> {
 /**
  * Handle trending resource read
  */
-export async function readTrendingResource(): Promise<any> {
+export async function readTrendingResource(): Promise<Record<string, unknown>> {
   const trending = await yahooFinanceService.getTrending(10);
 
   return {
