@@ -6,12 +6,10 @@ import { XMLParser } from 'fast-xml-parser';
 import pThrottle from 'p-throttle';
 import { CacheService, CacheTTL, CachePrefix } from './cache.js';
 import { yahooFinanceService } from './yahoo-finance.js';
-import { ErrorHandler, withRetry } from '../utils/error-handler.js';
+import { withRetry } from '../utils/error-handler.js';
 import type {
   InsiderTransaction,
-  InsiderTradingAnalysis,
-  CompanyProfile,
-  CompanyFundamentals
+  InsiderTradingAnalysis
 } from '../types/market-data.js';
 
 /**
@@ -105,9 +103,10 @@ export class SECEdgarService {
           }
 
           return transactions;
-        } catch (error: any) {
-          error.type = 'sec-error';
-          throw error;
+        } catch (error: unknown) {
+          const err = error as Error & { type?: string };
+          err.type = 'sec-error';
+          throw err;
         }
       },
       CacheTTL.INSIDER_TRADES
@@ -153,9 +152,10 @@ export class SECEdgarService {
           }
 
           return analysis;
-        } catch (error: any) {
-          error.type = 'sec-error';
-          throw error;
+        } catch (error: unknown) {
+          const err = error as Error & { type?: string };
+          err.type = 'sec-error';
+          throw err;
         }
       },
       CacheTTL.INSIDER_TRADES
@@ -181,9 +181,9 @@ export class SECEdgarService {
       },
       {
         maxRetries: 3,
-        shouldRetry: (error: any) => {
+        shouldRetry: (error: unknown) => {
           // Don't retry on rate limits or 404s
-          const message = error.message || '';
+          const message = (error as Error).message || '';
           if (message.includes('403') || message.includes('404')) {
             return false;
           }
@@ -220,20 +220,32 @@ export class SECEdgarService {
             // Filter by transaction type
             if (transactionType !== 'all') {
               const txnType = txn.transactionType.toLowerCase();
-              if (transactionType === 'buy' && txnType !== 'buy') continue;
-              if (transactionType === 'sell' && txnType !== 'sell') continue;
+              if (transactionType === 'buy' && txnType !== 'buy') {
+                continue;
+              }
+              if (transactionType === 'sell' && txnType !== 'sell') {
+                continue;
+              }
             }
 
             // Filter by date
-            if (startDate && txn.transactionDate < startDate) continue;
+            if (startDate && txn.transactionDate < startDate) {
+              continue;
+            }
 
             transactions.push(txn);
-            if (transactions.length >= limit) break;
+            if (transactions.length >= limit) {
+              break;
+            }
           }
         }
-        if (transactions.length >= limit) break;
+        if (transactions.length >= limit) {
+          break;
+        }
       }
-      if (transactions.length >= limit) break;
+      if (transactions.length >= limit) {
+        break;
+      }
     }
 
     return transactions.slice(0, limit);
@@ -242,10 +254,11 @@ export class SECEdgarService {
   /**
    * Extract RSS entries from parsed feed
    */
-  private extractRSSEntries(feed: any): RSSEntry[] {
+  private extractRSSEntries(feed: Record<string, unknown>): RSSEntry[] {
     // Handle different RSS/Atom feed structures
-    const entries = feed.feed?.entry || feed.rss?.channel?.item || [];
-    return Array.isArray(entries) ? entries : [entries];
+    const feedData = feed as { feed?: { entry?: unknown }; rss?: { channel?: { item?: unknown } } };
+    const entries = feedData.feed?.entry || feedData.rss?.channel?.item || [];
+    return Array.isArray(entries) ? (entries as RSSEntry[]) : [entries as RSSEntry];
   }
 
   /**
@@ -408,10 +421,11 @@ export class SECEdgarService {
       await this.cache.set(cacheKey, cik, CacheTTL.CIK_MAPPING);
 
       return cik;
-    } catch (error: any) {
-      error.message = `CIK not found for ticker ${ticker}`;
-      error.type = 'sec-error';
-      throw error;
+    } catch (error: unknown) {
+      const err = error as Error & { type?: string };
+      err.message = `CIK not found for ticker ${ticker}`;
+      err.type = 'sec-error';
+      throw err;
     }
   }
 
