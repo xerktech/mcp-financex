@@ -12,25 +12,33 @@ import { ErrorHandler } from '../utils/error-handler.js';
 export const getInsiderTradesTool = {
   name: 'get_insider_trades',
   description:
-    'Retrieve SEC Form 4 insider trading data for stocks. ' +
-    'Provides real-time insider buying and selling activity from SEC EDGAR filings. ' +
-    'Two modes: ' +
-    '1) Market-wide: Recent insider trades across all companies (omit symbol) ' +
-    '2) Company-specific: Detailed insider activity analysis for a specific stock (provide symbol) ' +
-    'When symbol is provided, returns comprehensive analysis including: ' +
-    '- Transaction history with insider names, titles, shares, and values ' +
-    '- Net insider activity (buying vs selling sentiment) ' +
-    '- Top insiders by transaction value ' +
-    '- Optional company fundamentals and profile for context ' +
-    'Essential for understanding insider sentiment, potential price catalysts, and informed trading decisions.',
+    '**PRIMARY TOOL FOR SEC FORM 4 INSIDER TRADING DATA** - Use this tool to retrieve actual SEC EDGAR Form 4 filings showing insider buying and selling activity. ' +
+    'This tool has DIRECT ACCESS to SEC.gov data and can retrieve real insider trading information. ' +
+    '\n\n**When to use this tool:**\n' +
+    '- User asks about "insider trading", "insider buying/selling", "Form 4 filings", or "SEC filings" for any company\n' +
+    '- User wants to know what insiders (executives, directors) are doing with their stock\n' +
+    '- User asks "are insiders buying/selling [SYMBOL]?"\n' +
+    '- User wants recent insider activity across the market\n' +
+    '- User is researching insider sentiment as a trading signal\n' +
+    '\n**Two operating modes:**\n' +
+    '1) **Company-specific** (provide symbol parameter): Returns detailed insider activity analysis for a specific stock including transaction history, net buying/selling sentiment, top insiders, and optional company fundamentals\n' +
+    '2) **Market-wide** (omit symbol parameter): Returns recent Form 4 filings across all companies in the market\n' +
+    '\n**Example queries this tool handles:**\n' +
+    '- "Show me insider trading for AAPL"\n' +
+    '- "Are insiders buying or selling Tesla stock?"\n' +
+    '- "What are the latest Form 4 filings?"\n' +
+    '- "Recent insider purchases in the last week"\n' +
+    '- "Show me insider selling activity for NVDA"\n' +
+    '\n**Data returned:** Insider names, positions, transaction types (buy/sell), shares traded, prices, transaction values, filing dates, and direct links to SEC Form 4 documents.',
   inputSchema: {
     type: 'object',
     properties: {
       symbol: {
         type: 'string',
         description:
-          'Ticker symbol for company-specific insider analysis (e.g., AAPL, TSLA). ' +
-          'Omit this parameter to get market-wide recent insider trades.'
+          'Stock ticker symbol for company-specific insider analysis (e.g., "AAPL", "TSLA", "MSFT"). ' +
+          'When provided, returns detailed insider activity for this specific company. ' +
+          'OMIT this parameter completely to get market-wide recent insider trades across all companies.'
       },
       limit: {
         type: 'number',
@@ -42,16 +50,18 @@ export const getInsiderTradesTool = {
         type: 'string',
         enum: ['buy', 'sell', 'all'],
         description:
-          'Filter by transaction type: ' +
-          '"buy" for insider purchases only, ' +
-          '"sell" for insider sales only, ' +
-          '"all" for all transaction types (default: all)'
+          'Filter results by transaction type: ' +
+          '"buy" = Show only insider PURCHASES (bullish signal), ' +
+          '"sell" = Show only insider SALES (bearish signal), ' +
+          '"all" = Show all transaction types (default). ' +
+          'Use "buy" when user asks "are insiders buying?" or "sell" when user asks "are insiders selling?"'
       },
       startDate: {
         type: 'string',
         description:
-          'Filter filings from this date forward. ' +
-          'Accepts ISO date (YYYY-MM-DD) or relative format (e.g., "7d" for 7 days, "1m" for 1 month, "3m" for 3 months)'
+          'Filter to show only filings from this date forward (omit for all recent filings). ' +
+          'Accepts: ISO date format "YYYY-MM-DD" (e.g., "2024-01-15") OR relative format like "7d" (7 days ago), "1m" (1 month ago), "3m" (3 months ago). ' +
+          'Example: Use "7d" when user asks for "insider trades in the last week"'
       },
       includeCompanyInfo: {
         type: 'boolean',
