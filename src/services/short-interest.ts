@@ -46,11 +46,11 @@ export interface ShortInterestData {
  */
 export class ShortInterestService {
   private cache: CacheService;
-  private yahooFinance: typeof YahooFinance;
+  private yahooFinance: InstanceType<typeof YahooFinance>;
 
   constructor() {
     this.cache = CacheService.getInstance();
-    this.yahooFinance = YahooFinance;
+    this.yahooFinance = new YahooFinance();
   }
 
   /**
@@ -71,7 +71,7 @@ export class ShortInterestService {
             // Try to get summary data, but don't fail if it's not available
             let summary = null;
             try {
-              summary = await this.yahooFinance.quoteSummary(symbol, {
+              summary = await YahooFinance.quoteSummary(symbol, {
                 modules: ['defaultKeyStatistics', 'price']
               });
             } catch {

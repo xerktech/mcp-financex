@@ -237,35 +237,144 @@ export class InstitutionalHoldingsService {
       const link = typeof entry.link === 'string' ? entry.link : (entry.link as { '@_href'?: string })?.['@_href'] || '';
       const filingDate = new Date((entry.updated as string) || (entry.published as string) || new Date());
 
-      // Extract accession number from title or link
-      const accessionMatch = title.match(/13F-HR/) || link.match(/accession[_-]number=([0-9-]+)/i);
-      const accessionNumber = accessionMatch ? (accessionMatch[1] || '') : '';
+      // Extract accession number from title, link, or id
+      let accessionNumber = '';
+      const accessionMatch = link.match(/(\d{10}-\d{2}-\d{6})/);
+      if (accessionMatch) {
+        accessionNumber = accessionMatch[1];
+      } else if (entry.id) {
+        const idMatch = (entry.id as string).match(/(\d{10}-\d{2}-\d{6})/);
+        if (idMatch) {
+          accessionNumber = idMatch[1];
+        }
+      }
 
-      // For MVP, return basic filing info without parsing full XML
-      // Full implementation would fetch and parse the 13F-HR XML/HTML document
+      // Try to fetch and parse the actual 13F XML document
+      let holdings: InstitutionalHolding[] = [];
+      let institutionName = 'Institution';
+      let periodOfReport = filingDate;
+
+      if (accessionNumber) {
+        try {
+          const result = await this.fetch13FXmlDocument(cik, accessionNumber);
+          holdings = result.holdings;
+          institutionName = result.institutionName || institutionName;
+          periodOfReport = result.periodOfReport || periodOfReport;
+        } catch (error) {
+          console.warn(`Failed to fetch 13F XML for ${accessionNumber}, using fallback`, error);
+        }
+      }
+
+      // Calculate summary
+      const totalValue = holdings.reduce((sum, h) => sum + h.value, 0);
+      const totalHoldings = holdings.length;
+      const topHoldings = [...holdings]
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 10);
+
       return {
         institution: {
-          name: 'Institution', // Would extract from filing
+          name: institutionName,
           cik: cik,
           fileNumber: undefined
         },
         filing: {
-          periodOfReport: filingDate,
+          periodOfReport: periodOfReport,
           filingDate: filingDate,
           accessionNumber: accessionNumber,
           documentUrl: link.startsWith('http') ? link : `${SEC_BASE_URL}${link}`
         },
         summary: {
-          totalValue: 0,
-          totalHoldings: 0,
-          topHoldings: []
+          totalValue,
+          totalHoldings,
+          topHoldings
         },
-        holdings: []
+        holdings
       };
     } catch (error) {
       console.error('Failed to parse 13F entry:', error);
       return null;
     }
+  }
+
+  /**
+   * Fetch and parse 13F-HR XML document to extract holdings
+   */
+  private async fetch13FXmlDocument(cik: string, accessionNumber: string): Promise<{
+    holdings: InstitutionalHolding[];
+    institutionName?: string;
+    periodOfReport?: Date;
+  }> {
+    // Construct URL to the primary document (informationTable.xml or form13fInfoTable.xml)
+    const accessionNoDashes = accessionNumber.replace(/-/g, '');
+    const paddedCik = cik.padStart(10, '0');
+
+    // Try common 13F information table file names
+    const possibleUrls = [
+      `${SEC_BASE_URL}/Archives/edgar/data/${paddedCik}/${accessionNoDashes}/informationTable.xml`,
+      `${SEC_BASE_URL}/Archives/edgar/data/${paddedCik}/${accessionNoDashes}/form13fInfoTable.xml`,
+      `${SEC_BASE_URL}/Archives/edgar/data/${paddedCik}/${accessionNoDashes}/primary_doc.xml`
+    ];
+
+    let xmlText = '';
+    for (const url of possibleUrls) {
+      try {
+        const response = await throttledFetch(url);
+        if (response.ok) {
+          xmlText = await response.text();
+          break;
+        }
+      } catch {
+        // Try next URL
+      }
+    }
+
+    if (!xmlText) {
+      throw new Error('Could not fetch 13F information table');
+    }
+
+    const parsed = this.xmlParser.parse(xmlText);
+
+    // Parse the information table
+    const infoTable = parsed.informationTable || parsed.edgarSubmission?.informationTable || parsed;
+    const holdings: InstitutionalHolding[] = [];
+
+    // Extract holdings from infoTable
+    let entries = infoTable.infoTable || [];
+    if (!Array.isArray(entries)) {
+      entries = entries ? [entries] : [];
+    }
+
+    for (const entry of entries) {
+      const holding: InstitutionalHolding = {
+        nameOfIssuer: entry.nameOfIssuer || '',
+        titleOfClass: entry.titleOfClass || '',
+        cusip: entry.cusip || '',
+        value: Number(entry.value || 0),
+        shares: Number((entry.shrsOrPrnAmt?.sshPrnamt || entry.shrsOrPrnAmt) || 0),
+        shareType: (entry.shrsOrPrnAmt?.sshPrnamtType || 'SH') as 'SH' | 'PRN',
+        putCall: entry.putCall as 'Put' | 'Call' | undefined,
+        investmentDiscretion: (entry.investmentDiscretion || 'SOLE') as 'SOLE' | 'SHARED' | 'NONE',
+        votingAuthority: entry.votingAuthority ? {
+          sole: Number(entry.votingAuthority.Sole || 0),
+          shared: Number(entry.votingAuthority.Shared || 0),
+          none: Number(entry.votingAuthority.None || 0)
+        } : undefined
+      };
+
+      holdings.push(holding);
+    }
+
+    // Extract metadata
+    const coverPage = parsed.edgarSubmission?.headerData || parsed.headerData || {};
+    const institutionName = coverPage.filerInfo?.filer?.name || undefined;
+    const periodOfReport = coverPage.reportingPeriodDate ? new Date(coverPage.reportingPeriodDate) : undefined;
+
+    return {
+      holdings,
+      institutionName,
+      periodOfReport
+    };
   }
 }
 

@@ -59,11 +59,11 @@ export interface ExtendedHoursData {
  */
 export class ExtendedHoursService {
   private cache: CacheService;
-  private yahooFinance: typeof YahooFinance;
+  private yahooFinance: InstanceType<typeof YahooFinance>;
 
   constructor() {
     this.cache = CacheService.getInstance();
-    this.yahooFinance = YahooFinance;
+    this.yahooFinance = new YahooFinance();
   }
 
   /**

@@ -70,11 +70,11 @@ export interface AnalystRatingData {
  */
 export class AnalystRatingsService {
   private cache: CacheService;
-  private yahooFinance: typeof YahooFinance;
+  private yahooFinance: InstanceType<typeof YahooFinance>;
 
   constructor() {
     this.cache = CacheService.getInstance();
-    this.yahooFinance = YahooFinance;
+    this.yahooFinance = new YahooFinance();
   }
 
   /**
@@ -95,7 +95,7 @@ export class AnalystRatingsService {
             // Try to get recommendation and financial data
             let summary = null;
             try {
-              summary = await this.yahooFinance.quoteSummary(symbol, {
+              summary = await YahooFinance.quoteSummary(symbol, {
                 modules: ['recommendationTrend', 'financialData', 'price']
               });
             } catch {
