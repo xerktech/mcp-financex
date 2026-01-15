@@ -233,7 +233,7 @@ export class InstitutionalHoldingsService {
    */
   private async parse13FEntry(entry: Record<string, unknown>, cik: string): Promise<InstitutionalFiling | null> {
     try {
-      const title = (entry.title as string) || '';
+      const _title = (entry.title as string) || '';
       const link = typeof entry.link === 'string' ? entry.link : (entry.link as { '@_href'?: string })?.['@_href'] || '';
       const filingDate = new Date((entry.updated as string) || (entry.published as string) || new Date());
 

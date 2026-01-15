@@ -127,6 +127,7 @@ export class FinancialStatementsService {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let summary: any = null;
             try {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               summary = await YahooFinance.quoteSummary(symbol, { modules: modules as any });
             } catch (error) {
               console.warn(`Failed to fetch financial statements for ${symbol}:`, error);
@@ -152,6 +153,7 @@ export class FinancialStatementsService {
               : summary.incomeStatementHistoryQuarterly?.incomeStatementHistory;
 
             if (incomeHistory && Array.isArray(incomeHistory)) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               statements.incomeStatements = incomeHistory.slice(0, limit).map((stmt: any) => {
                 const endDate = stmt.endDate ? new Date(stmt.endDate) : new Date();
                 return {
@@ -181,6 +183,7 @@ export class FinancialStatementsService {
               : summary.balanceSheetHistoryQuarterly?.balanceSheetStatements;
 
             if (balanceHistory && Array.isArray(balanceHistory)) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               statements.balanceSheets = balanceHistory.slice(0, limit).map((stmt: any) => {
                 const endDate = stmt.endDate ? new Date(stmt.endDate) : new Date();
                 return {
@@ -216,6 +219,7 @@ export class FinancialStatementsService {
               : summary.cashflowStatementHistoryQuarterly?.cashflowStatements;
 
             if (cashFlowHistory && Array.isArray(cashFlowHistory)) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               statements.cashFlowStatements = cashFlowHistory.slice(0, limit).map((stmt: any) => {
                 const endDate = stmt.endDate ? new Date(stmt.endDate) : new Date();
                 const ocf = stmt.totalCashFromOperatingActivities || 0;

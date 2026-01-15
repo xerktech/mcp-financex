@@ -89,11 +89,11 @@ export class AnalystRatingsService {
         return await withRetry(async () => {
           try {
             // Get both quote and quoteSummary for comprehensive data
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const quote = await this.yahooFinance.quote(symbol, {}, { validateResult: false }) as any;
+            const quote = await this.yahooFinance.quote(symbol, {}, { validateResult: false });
 
             // Try to get recommendation and financial data
-            let summary = null;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            let summary: any = null;
             try {
               summary = await YahooFinance.quoteSummary(symbol, {
                 modules: ['recommendationTrend', 'financialData', 'price']

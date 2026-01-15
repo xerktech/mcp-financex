@@ -81,7 +81,7 @@ export class ExtendedHoursService {
         return await withRetry(async () => {
           try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const quote = await this.yahooFinance.quote(symbol, {}, { validateResult: false }) as any;
+            const quote: any = await this.yahooFinance.quote(symbol, {}, { validateResult: false });
 
             if (!quote) {
               throw new Error('No data found for symbol');
