@@ -32,6 +32,10 @@ import { get8KEventsTool, handleGet8KEvents } from './material-events.js';
 import { getFinancialStatementsTool, handleGetFinancialStatements } from './financials.js';
 import { calculateDCFValuationTool, handleCalculateDCFValuation } from './dcf.js';
 import { comparePeersTool, handleComparePeers } from './peer-comparison.js';
+import { getExtendedHoursTool, handleGetExtendedHours } from './extended-hours.js';
+import { getShortInterestTool, handleGetShortInterest } from './short-interest.js';
+import { getAnalystRatingsTool, handleGetAnalystRatings } from './analyst-ratings.js';
+import { analyzeNewsImpactTool, handleAnalyzeNewsImpact } from './news-impact.js';
 
 /**
  * All available tools
@@ -46,6 +50,12 @@ export const tools = [
   getSecForm4Tool,        // Primary SEC Form 4 tool (explicit naming for discoverability)
   getInsiderTradesTool,   // Legacy alias for backward compatibility
   calculateIndicatorTool,
+
+  // Real-Time & Market Intelligence tools
+  getExtendedHoursTool,   // Pre-market and after-hours trading data
+  getShortInterestTool,   // Short interest and squeeze potential tracker
+  getAnalystRatingsTool,  // Analyst ratings, target prices, and consensus
+  analyzeNewsImpactTool,  // News impact analysis and price correlation
 
   // Options trading tools
   getOptionsChainTool,
@@ -81,6 +91,12 @@ export const toolHandlers: Record<string, (args: unknown) => Promise<unknown>> =
   'get_sec_form4_filings': handleGetInsiderTrades,  // Primary SEC Form 4 handler
   'get_insider_trades': handleGetInsiderTrades,     // Legacy alias (same handler)
   'calculate_indicator': handleCalculateIndicator,
+
+  // Real-Time & Market Intelligence handlers
+  'get_extended_hours_data': handleGetExtendedHours,
+  'get_short_interest': handleGetShortInterest,
+  'get_analyst_ratings': handleGetAnalystRatings,
+  'analyze_news_impact': handleAnalyzeNewsImpact,
 
   // Options trading handlers
   'get_options_chain': handleGetOptionsChain,
