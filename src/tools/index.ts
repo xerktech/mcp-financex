@@ -6,7 +6,7 @@ import { getQuoteTool, handleGetQuote, getBatchQuoteTool, handleGetBatchQuote } 
 import { getHistoricalTool, handleGetHistorical } from './historical.js';
 import { searchTickerTool, handleSearchTicker } from './search.js';
 import { getMarketNewsTool, handleGetMarketNews } from './news.js';
-import { getInsiderTradesTool, handleGetInsiderTrades } from './insider.js';
+import { getSecForm4Tool, getInsiderTradesTool, handleGetInsiderTrades } from './insider.js';
 import { calculateIndicatorTool, handleCalculateIndicator } from './indicators.js';
 import {
   getOptionsChainTool,
@@ -37,7 +37,8 @@ export const tools = [
   getHistoricalTool,
   searchTickerTool,
   getMarketNewsTool,
-  getInsiderTradesTool,
+  getSecForm4Tool,        // Primary SEC Form 4 tool (explicit naming for discoverability)
+  getInsiderTradesTool,   // Legacy alias for backward compatibility
   calculateIndicatorTool,
 
   // Options trading tools
@@ -61,7 +62,8 @@ export const toolHandlers: Record<string, (args: unknown) => Promise<unknown>> =
   'get_historical_data': handleGetHistorical,
   'search_ticker': handleSearchTicker,
   'get_market_news': handleGetMarketNews,
-  'get_insider_trades': handleGetInsiderTrades,
+  'get_sec_form4_filings': handleGetInsiderTrades,  // Primary SEC Form 4 handler
+  'get_insider_trades': handleGetInsiderTrades,     // Legacy alias (same handler)
   'calculate_indicator': handleCalculateIndicator,
 
   // Options trading handlers

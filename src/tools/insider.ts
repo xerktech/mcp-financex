@@ -7,7 +7,81 @@ import { getInsiderTradesInputSchema, validateInput, parseRelativeDate } from '.
 import { ErrorHandler } from '../utils/error-handler.js';
 
 /**
- * Get insider trades tool definition
+ * Shared JSON Schema for MCP tool input (used by both tool definitions)
+ */
+const insiderTradesJsonSchema = {
+  type: 'object',
+  properties: {
+    symbol: {
+      type: 'string',
+      description:
+        'Stock ticker symbol for company-specific insider analysis (e.g., "AAPL", "TSLA", "MSFT"). ' +
+        'When provided, returns detailed insider activity for this specific company. ' +
+        'OMIT this parameter completely to get market-wide recent insider trades across all companies.'
+    },
+    limit: {
+      type: 'number',
+      description: 'Maximum number of transactions to return (default: 20, max: 100)',
+      minimum: 1,
+      maximum: 100
+    },
+    transactionType: {
+      type: 'string',
+      enum: ['buy', 'sell', 'all'],
+      description:
+        'Filter results by transaction type: ' +
+        '"buy" = Show only insider PURCHASES (bullish signal), ' +
+        '"sell" = Show only insider SALES (bearish signal), ' +
+        '"all" = Show all transaction types (default). ' +
+        'Use "buy" when user asks "are insiders buying?" or "sell" when user asks "are insiders selling?"'
+    },
+    startDate: {
+      type: 'string',
+      description:
+        'Filter to show only filings from this date forward (omit for all recent filings). ' +
+        'Accepts: ISO date format "YYYY-MM-DD" (e.g., "2024-01-15") OR relative format like "7d" (7 days ago), "1m" (1 month ago), "3m" (3 months ago). ' +
+        'Example: Use "7d" when user asks for "insider trades in the last week"'
+    },
+    includeCompanyInfo: {
+      type: 'boolean',
+      description:
+        'When true and symbol is provided, includes company profile and fundamental metrics from Yahoo Finance. ' +
+        'Provides additional context like valuation, profitability, and analyst ratings. ' +
+        'Default: true when symbol is provided, ignored for market-wide mode.'
+    }
+  },
+  required: []
+} as const;
+
+/**
+ * SEC Form 4 tool definition (primary - explicit name for discoverability)
+ */
+export const getSecForm4Tool = {
+  name: 'get_sec_form4_filings',
+  description:
+    'SEC Form 4 | EDGAR | Form 4 Filings | Insider Trading - ' +
+    'Get SEC Form 4 insider trading filings directly from SEC.gov EDGAR database. ' +
+    '🚨 THIS TOOL RETRIEVES REAL SEC FORM 4 DATA - DO NOT SAY "DATA UNAVAILABLE" 🚨 ' +
+    '\n\n**PRIMARY TOOL for queries about:**\n' +
+    '- "SEC Form 4" / "Form 4 filings" / "SEC filings" / "EDGAR database"\n' +
+    '- "latest SEC Form 4" / "recent Form 4s" / "newest insider filings"\n' +
+    '- "insider trading" / "insider activity" / "insider transactions"\n' +
+    '- "insider buying" / "insider selling" / "insider purchases/sales"\n' +
+    '- "what are insiders doing" / "are insiders buying/selling"\n' +
+    '\n**Two operating modes:**\n' +
+    '1) **Company-specific** (provide symbol): Detailed insider activity analysis for one stock\n' +
+    '2) **Market-wide** (omit symbol): Recent Form 4 filings across all companies\n' +
+    '\n**Example queries:**\n' +
+    '- "What\'s the latest SEC Form 4 filing?"\n' +
+    '- "Show me recent Form 4s"\n' +
+    '- "Get EDGAR insider trading data for AAPL"\n' +
+    '- "Are insiders buying Tesla?"\n' +
+    '\n**Returns:** Insider names, positions, transaction types, shares, prices, values, filing dates, direct SEC links.',
+  inputSchema: insiderTradesJsonSchema
+};
+
+/**
+ * Get insider trades tool definition (legacy alias for backward compatibility)
  */
 export const getInsiderTradesTool = {
   name: 'get_insider_trades',
@@ -31,49 +105,7 @@ export const getInsiderTradesTool = {
     '- "Recent insider purchases in the last week"\n' +
     '- "Show me insider selling activity for NVDA"\n' +
     '\n**Data returned:** Insider names, positions, transaction types (buy/sell), shares traded, prices, transaction values, filing dates, and direct links to SEC Form 4 documents.',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      symbol: {
-        type: 'string',
-        description:
-          'Stock ticker symbol for company-specific insider analysis (e.g., "AAPL", "TSLA", "MSFT"). ' +
-          'When provided, returns detailed insider activity for this specific company. ' +
-          'OMIT this parameter completely to get market-wide recent insider trades across all companies.'
-      },
-      limit: {
-        type: 'number',
-        description: 'Maximum number of transactions to return (default: 20, max: 100)',
-        minimum: 1,
-        maximum: 100
-      },
-      transactionType: {
-        type: 'string',
-        enum: ['buy', 'sell', 'all'],
-        description:
-          'Filter results by transaction type: ' +
-          '"buy" = Show only insider PURCHASES (bullish signal), ' +
-          '"sell" = Show only insider SALES (bearish signal), ' +
-          '"all" = Show all transaction types (default). ' +
-          'Use "buy" when user asks "are insiders buying?" or "sell" when user asks "are insiders selling?"'
-      },
-      startDate: {
-        type: 'string',
-        description:
-          'Filter to show only filings from this date forward (omit for all recent filings). ' +
-          'Accepts: ISO date format "YYYY-MM-DD" (e.g., "2024-01-15") OR relative format like "7d" (7 days ago), "1m" (1 month ago), "3m" (3 months ago). ' +
-          'Example: Use "7d" when user asks for "insider trades in the last week"'
-      },
-      includeCompanyInfo: {
-        type: 'boolean',
-        description:
-          'When true and symbol is provided, includes company profile and fundamental metrics from Yahoo Finance. ' +
-          'Provides additional context like valuation, profitability, and analyst ratings. ' +
-          'Default: true when symbol is provided, ignored for market-wide mode.'
-      }
-    },
-    required: []
-  }
+  inputSchema: insiderTradesJsonSchema
 };
 
 /**

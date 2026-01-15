@@ -51,7 +51,7 @@ interface CIKMapping {
  */
 interface RSSEntry {
   title: string;
-  link: string;
+  link: string | { '@_href': string } | { href: string };
   updated: string;
   published?: string;
   category?: {
@@ -268,7 +268,14 @@ export class SECEdgarService {
     try {
       // Extract basic info from RSS entry
       const title = entry.title || '';
-      const link = entry.link || '';
+      // Handle link as string or object (XML parser sometimes returns { '@_href': url })
+      let link = '';
+      if (typeof entry.link === 'string') {
+        link = entry.link;
+      } else if (entry.link && typeof entry.link === 'object') {
+        link = (entry.link as { '@_href'?: string; href?: string })['@_href'] ||
+               (entry.link as { '@_href'?: string; href?: string })['href'] || '';
+      }
       const filingDate = new Date(entry.updated || entry['published'] || new Date());
 
       // Extract issuer and reporting owner from title
