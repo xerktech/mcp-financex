@@ -48,6 +48,16 @@ const insiderTradesJsonSchema = {
         'When true and symbol is provided, includes company profile and fundamental metrics from Yahoo Finance. ' +
         'Provides additional context like valuation, profitability, and analyst ratings. ' +
         'Default: true when symbol is provided, ignored for market-wide mode.'
+    },
+    formType: {
+      type: 'string',
+      enum: ['3', '4', '5'],
+      description:
+        'SEC Form type to retrieve (default: "4"): ' +
+        '"3" = Form 3 (Initial Statement of Beneficial Ownership) - Filed when insider first becomes an owner. ' +
+        '"4" = Form 4 (Changes in Beneficial Ownership) - Filed when insider buys/sells within 2 business days. Most common for tracking active trading. ' +
+        '"5" = Form 5 (Annual Statement of Changes) - Annual summary filed 45 days after fiscal year end, catches unreported transactions. ' +
+        'Default is "4" which provides timely insider transaction data.'
     }
   },
   required: []
@@ -113,7 +123,7 @@ export const getInsiderTradesTool = {
  */
 export async function handleGetInsiderTrades(args: unknown) {
   try {
-    const { symbol, limit, transactionType, startDate, includeCompanyInfo } = validateInput(
+    const { symbol, limit, transactionType, startDate, includeCompanyInfo, formType } = validateInput(
       getInsiderTradesInputSchema,
       args
     );
@@ -123,6 +133,7 @@ export async function handleGetInsiderTrades(args: unknown) {
     const parsedStartDate = startDate
       ? (typeof startDate === 'string' ? parseRelativeDate(startDate) : startDate)
       : undefined;
+    const selectedFormType = (formType || '4') as '3' | '4' | '5';
 
     if (symbol) {
       // Company-specific mode
@@ -132,7 +143,8 @@ export async function handleGetInsiderTrades(args: unknown) {
         transactionLimit,
         filterType,
         parsedStartDate,
-        shouldIncludeInfo
+        shouldIncludeInfo,
+        selectedFormType
       );
 
       // Calculate sentiment
@@ -219,7 +231,8 @@ export async function handleGetInsiderTrades(args: unknown) {
       const transactions = await secEdgarService.getRecentInsiderTrades(
         transactionLimit,
         filterType,
-        parsedStartDate
+        parsedStartDate,
+        selectedFormType
       );
 
       return {
