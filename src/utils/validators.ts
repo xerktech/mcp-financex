@@ -111,7 +111,8 @@ export const getInsiderTradesInputSchema = z.object({
   limit: z.number().int().positive().max(100).optional(),
   transactionType: transactionTypeSchema.optional(),
   startDate: dateSchema.optional(),
-  includeCompanyInfo: z.boolean().optional()
+  includeCompanyInfo: z.boolean().optional(),
+  formType: z.enum(['3', '4', '5']).optional()
 });
 
 /**

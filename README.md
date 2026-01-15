@@ -5,7 +5,7 @@
 [![npm version](https://badge.fury.io/js/mcp-financex.svg)](https://www.npmjs.com/package/mcp-financex)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A comprehensive Model Context Protocol (MCP) server for real-time stock, cryptocurrency, and **options trading** analysis using Yahoo Finance data. Provides tools for price quotes, historical data, technical indicators, market news, options chains, Greeks calculation, and advanced options strategy analysis.
+A comprehensive Model Context Protocol (MCP) server for real-time stock, cryptocurrency, **options trading**, **SEC filings**, and **fundamental valuation** analysis. Provides tools for price quotes, historical data, technical indicators, market news, options chains, Greeks calculation, advanced options strategy analysis, insider trading tracking (Forms 3/4/5), institutional holdings (13F), ownership changes (13D/G), material events (8-K), financial statements, and DCF valuation.
 
 ## Features
 
@@ -19,7 +19,7 @@ A comprehensive Model Context Protocol (MCP) server for real-time stock, cryptoc
 - **Market Overview**: Access major market indices and trending stocks
 - **Watchlist Management**: Track favorite symbols with notes and alerts
 
-### Options Trading (NEW!)
+### Options Trading
 - **Options Chains**: Complete options data with strikes, premiums, volume, open interest, and IV
 - **Greeks Calculator**: Delta, Gamma, Theta, Vega, Rho using Black-Scholes model
 - **Earnings Calendar**: Critical dates for volatility planning
@@ -29,10 +29,23 @@ A comprehensive Model Context Protocol (MCP) server for real-time stock, cryptoc
 - **Max Pain Calculator**: Find the pin price where most options expire worthless
 - **Strategy Analyzer**: Analyze complex spreads, condors, butterflies with P&L charts
 
+### SEC Filings & Institutional Analysis (NEW!)
+- **Insider Trading (Forms 3/4/5)**: Track CEO, director, and 10% owner buying/selling with real transaction details
+- **Institutional Holdings (13F)**: Monitor hedge fund and institutional investor portfolios (Berkshire, Bridgewater, etc.)
+- **Ownership Changes (13D/G)**: Track major ownership changes (5%+ stakes) and activist investor campaigns
+- **Material Events (8-K)**: Real-time corporate event notifications (M&A, earnings, management changes, cybersecurity)
+
+### Fundamental Analysis & Valuation (NEW!)
+- **Financial Statements**: Access income statements, balance sheets, and cash flow statements
+- **Financial Ratios**: Calculate profitability, liquidity, leverage, and efficiency ratios
+- **DCF Valuation**: Calculate intrinsic value using Discounted Cash Flow analysis
+- **Sensitivity Analysis**: Test valuation assumptions (WACC, terminal growth, FCF margin)
+- **Investment Recommendations**: Strong Buy/Buy/Hold/Sell/Strong Sell based on upside/downside
+
 ### Technical Features
 - **Smart Caching**: Intelligent caching with market hours awareness to minimize API calls
 - **Black-Scholes Pricing**: Accurate Greeks and theoretical option prices
-- **No API Keys Required**: Free Yahoo Finance data (respects rate limits)
+- **No API Keys Required**: Free Yahoo Finance and SEC EDGAR data (respects rate limits)
 
 ## Installation
 
@@ -264,9 +277,252 @@ Get the latest news about Apple
 Get general market news (omit symbol)
 ```
 
+## SEC Filings & Institutional Analysis Tools
+
+### 7. get_sec_form4_filings (Insider Trading)
+
+Track insider trading activity from SEC Forms 3, 4, and 5. See what CEOs, directors, and major shareholders are buying or selling.
+
+**Input:**
+```json
+{
+  "symbol": "AAPL",
+  "limit": 20,
+  "transactionType": "buy",  // "buy", "sell", or "all"
+  "formType": "4"  // "3", "4", or "5"
+}
+```
+
+**Example:**
+```
+Show me recent insider buying for Apple
+What insider trades happened at Tesla?
+Track Form 4 filings for NVDA
+```
+
+**Form Types:**
+- **Form 3**: Initial ownership statements when someone becomes an insider
+- **Form 4**: Changes in ownership (buy/sell transactions)
+- **Form 5**: Annual summary of transactions
+
+**Output:** Transaction details with shares, prices, values, insider positions, and SEC filing URLs.
+
+### 8. get_13f_institutional_holdings
+
+Track what hedge funds and institutional investors are buying and selling from SEC Form 13F quarterly filings.
+
+**Input:**
+```json
+{
+  "cik": "0001067983",  // Berkshire Hathaway CIK
+  "limit": 10,
+  "compareQuarters": true
+}
+```
+
+**Example:**
+```
+What is Berkshire Hathaway buying? (CIK: 0001067983)
+Show me Warren Buffett's latest portfolio changes
+Track Bridgewater's 13F filings
+What did hedge funds buy this quarter?
+```
+
+**Famous Investors CIKs:**
+- Berkshire Hathaway (Warren Buffett): 0001067983
+- Vanguard Group: 0000102909
+- BlackRock: 0001086364
+
+**Output:** Institution details, portfolio holdings, quarterly changes (additions, reductions, increases, decreases).
+
+### 9. get_13dg_ownership_changes
+
+Monitor major ownership changes (5%+ stakes) and activist investor campaigns from SEC Schedule 13D and 13G filings.
+
+**Input:**
+```json
+{
+  "symbol": "TSLA",
+  "formType": "13D",  // "13D", "13G", or "both"
+  "activistOnly": false
+}
+```
+
+**Example:**
+```
+Show me recent 13D filings (activist investors)
+Who filed major ownership stakes in Tesla?
+Track activist investor activity
+Recent 5%+ ownership changes
+```
+
+**Form Types:**
+- **13D**: Active ownership with intent to influence company (activist investors)
+- **13G**: Passive ownership without intent to influence
+
+**Output:** Reporting person, ownership percentage, shares, purpose of acquisition, filing dates.
+
+### 10. get_8k_material_events
+
+Get real-time notifications of material corporate events from SEC Form 8-K current reports.
+
+**Input:**
+```json
+{
+  "symbol": "AAPL",
+  "category": "financial",  // "business", "financial", "securities", "governance", "disclosure", "all"
+  "itemNumbers": ["2.02", "5.02"]  // Optional: specific item numbers
+}
+```
+
+**Example:**
+```
+Show me recent 8-K filings for Apple
+What are the latest material events?
+Recent earnings-related 8-Ks (Item 2.02)
+Management changes (Item 5.02)
+```
+
+**Event Categories:**
+- **Business**: Material agreements, bankruptcy, cybersecurity incidents
+- **Financial**: M&A completion, earnings releases, impairments
+- **Securities**: Delisting notices, unregistered sales
+- **Governance**: Director/officer changes, control changes
+- **Disclosure**: Regulation FD disclosures
+
+**Key Item Numbers:**
+- 1.01: Material agreements
+- 1.05: Cybersecurity incidents
+- 2.01: M&A completion
+- 2.02: Earnings releases
+- 5.02: Director/officer changes
+- 8.01: Other material events
+
+**Output:** Event details, item categories, filing dates, company info, SEC filing URLs.
+
+## Fundamental Analysis & Valuation Tools
+
+### 11. get_financial_statements
+
+Access comprehensive financial data from SEC 10-K (annual) and 10-Q (quarterly) filings.
+
+**Input:**
+```json
+{
+  "symbol": "AAPL",
+  "periodType": "annual",  // "annual" or "quarterly"
+  "limit": 3,
+  "includeRatios": true
+}
+```
+
+**Example:**
+```
+Get Apple's annual financial statements
+Show me Tesla's quarterly financials
+What is Microsoft's profit margin?
+Compare balance sheets over 4 quarters
+```
+
+**Available Data:**
+- **Income Statement**: Revenue, gross profit, operating income, net income, EPS, EBITDA
+- **Balance Sheet**: Assets, liabilities, equity, cash, debt, working capital
+- **Cash Flow**: Operating cash flow, capital expenditures, free cash flow
+
+**Financial Ratios Calculated:**
+- **Profitability**: Gross margin, operating margin, net margin, ROA, ROE
+- **Liquidity**: Current ratio, quick ratio
+- **Leverage**: Debt-to-equity, debt-to-assets
+- **Efficiency**: Asset turnover
+
+**Output:** Complete financial statements, calculated ratios, period information.
+
+### 12. calculate_dcf_valuation
+
+Calculate intrinsic value using Discounted Cash Flow (DCF) analysis with 5-year projections and terminal value.
+
+**Input:**
+```json
+{
+  "symbol": "AAPL",
+  "customInputs": {
+    "revenueGrowthRates": [0.15, 0.12, 0.10, 0.08, 0.06],
+    "fcfMargin": 0.25,
+    "wacc": 0.10,
+    "terminalGrowthRate": 0.03
+  },
+  "includeSensitivity": true
+}
+```
+
+**Example:**
+```
+Calculate intrinsic value for Apple
+Is Tesla overvalued or undervalued?
+DCF analysis for NVDA with sensitivity
+What is Microsoft worth based on DCF?
+Should I buy this stock? (based on valuation)
+```
+
+**Customizable Inputs:**
+- Revenue growth rates (5-year projection)
+- Free cash flow margin
+- WACC (Weighted Average Cost of Capital)
+- Terminal growth rate
+- Shares outstanding, net debt
+
+**Investment Recommendations:**
+- **Strong Buy**: >30% upside
+- **Buy**: 15-30% upside
+- **Hold**: -10% to 15%
+- **Sell**: -25% to -10%
+- **Strong Sell**: <-25% downside
+
+**Sensitivity Analysis:**
+Tests how valuation changes with:
+- WACC variations (+/- 2%)
+- Terminal growth rate variations (+/- 1%)
+- FCF margin variations (+/- 5%)
+
+**Output:** Intrinsic value per share, current price comparison, recommendation, 5-year projections, optional sensitivity analysis.
+
+### 13. compare_peer_companies
+
+Compare key financial metrics across multiple companies for competitive analysis and investment decisions.
+
+**Input:**
+```json
+{
+  "symbols": ["AAPL", "MSFT", "GOOGL"],
+  "metrics": ["marketCap", "peRatio", "netMargin", "roe"]  // Optional
+}
+```
+
+**Example:**
+```
+Compare Apple, Microsoft, and Google financials
+Which tech company has better margins?
+Compare Tesla vs traditional automakers
+Analyze competitors in the semiconductor sector
+```
+
+**Comparison Metrics:**
+- **Valuation**: Market cap, P/E ratio, P/B ratio, EV/EBITDA
+- **Profitability**: Gross margin, operating margin, net margin, ROA, ROE
+- **Growth**: Revenue growth, earnings growth
+- **Liquidity**: Current ratio, quick ratio
+- **Leverage**: Debt-to-equity, debt-to-assets, interest coverage
+- **Efficiency**: Asset turnover
+- **Earnings Quality**: Quality of earnings (OCF/Net Income), cash conversion rate
+
+**Rankings:**
+Automatically ranks companies by key metrics to identify leaders and laggards.
+
+**Output:** Side-by-side comparison of up to 10 companies with rankings for key metrics.
+
 ## Options Trading Tools
 
-### 7. get_options_chain
+### 14. get_options_chain
 
 Get complete options chain data with all available strikes, calls, and puts.
 
@@ -286,7 +542,7 @@ Get options for TSLA expiring June 21, 2024
 
 **Output:** Calls and puts with strikes, premiums, volume, open interest, implied volatility, bid/ask spreads.
 
-### 8. calculate_greeks
+### 15. calculate_greeks
 
 Calculate option Greeks (Delta, Gamma, Theta, Vega, Rho) using Black-Scholes model.
 
@@ -313,7 +569,7 @@ What are the Greeks for a TSLA $250 put?
 - **Vega**: Volatility sensitivity - impact of 1% change in implied volatility
 - **Rho**: Interest rate sensitivity - impact of 1% change in rates
 
-### 9. get_earnings_calendar
+### 16. get_earnings_calendar
 
 Get upcoming earnings dates and historical earnings data.
 
@@ -333,7 +589,7 @@ Show me upcoming earnings for TSLA
 
 **Why it matters:** Earnings announcements cause volatility spikes, significantly impacting options prices. Options traders often avoid holding positions through earnings or specifically trade earnings volatility.
 
-### 10. get_dividend_info
+### 17. get_dividend_info
 
 Get comprehensive dividend information including ex-dividend dates.
 
@@ -352,7 +608,7 @@ Get dividend information for MSFT
 
 **Why it matters:** Ex-dividend dates affect options pricing, especially for calls. Stock price typically drops by the dividend amount on ex-div date.
 
-### 11. calculate_historical_volatility
+### 18. calculate_historical_volatility
 
 Calculate historical (realized) volatility for multiple periods.
 
@@ -372,7 +628,7 @@ Show me historical volatility trends for AAPL
 
 **Why it matters:** Compare historical volatility (HV) with implied volatility (IV) to identify overpriced or underpriced options. High IV relative to HV suggests expensive options (good for selling), while low IV relative to HV suggests cheap options (good for buying).
 
-### 12. calculate_max_pain
+### 19. calculate_max_pain
 
 Calculate the max pain price where most options expire worthless.
 
@@ -392,7 +648,7 @@ Calculate max pain for next week's SPY expiration
 
 **Theory:** Max pain theory suggests prices gravitate toward the strike where option buyers lose the most money (and option writers profit the most) as expiration approaches.
 
-### 13. get_implied_volatility
+### 20. get_implied_volatility
 
 Get implied volatility data and compare with historical volatility.
 
@@ -415,7 +671,7 @@ Show me implied volatility by expiration for AAPL
 - IV by expiration (term structure)
 - High/low IV environment assessment
 
-### 14. analyze_options_strategy
+### 21. analyze_options_strategy
 
 Analyze complex options strategies with P&L calculations, Greeks, and risk metrics.
 
@@ -627,10 +883,39 @@ See [`.github/workflows/README.md`](.github/workflows/README.md) for detailed wo
 
 ## Development
 
+### Claude Code Integration
+
+This project is optimized for development with [Claude Code](https://claude.com/claude-code), Anthropic's official CLI tool. The `.claude/` directory contains configuration and guides to help Claude work more effectively with the codebase.
+
+**For Claude Code Users:**
+- `.claude/CLAUDE_GUIDE.md` - Quick reference for working with this codebase
+- `.claude/ARCHITECTURE.md` - Detailed system architecture and design decisions
+- `.claude/COMMON_TASKS.md` - Step-by-step workflows for common development tasks
+- `.claude/settings.local.json` - Pre-configured permissions for common operations
+- `.claudeignore` - Optimized to exclude unnecessary files from context
+
+**Getting Started with Claude Code:**
+```bash
+# Install Claude Code (if not already installed)
+npm install -g @anthropic/claude-code
+
+# Navigate to project and start Claude
+cd mcp-financex
+claude
+
+# Claude will automatically load project configuration
+# Try: "Help me add a new technical indicator"
+```
+
 ### Project Structure
 
 ```
 mcp-financex/
+├── .claude/                  # Claude Code configuration
+│   ├── CLAUDE_GUIDE.md      # Quick reference guide
+│   ├── ARCHITECTURE.md      # System architecture
+│   ├── COMMON_TASKS.md      # Development workflows
+│   └── settings.local.json  # Claude permissions
 ├── src/
 │   ├── index.ts              # Entry point
 │   ├── server.ts             # MCP server setup
@@ -640,6 +925,7 @@ mcp-financex/
 │   ├── types/                # TypeScript type definitions
 │   └── utils/                # Utilities (error handling, validation)
 ├── tests/                    # Test files
+├── .claudeignore             # Files to exclude from Claude context
 ├── package.json
 ├── tsconfig.json
 └── README.md

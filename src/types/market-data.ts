@@ -120,7 +120,7 @@ export interface InsiderTransaction {
   transactionDate: Date;
   insiderName: string;
   position?: string;
-  transactionType: 'Buy' | 'Sell' | 'Option Exercise' | 'Gift' | 'Other';
+  transactionType: 'Buy' | 'Sell' | 'Award' | 'Exercise' | 'Tax Payment' | 'Gift' | 'Disposal' | 'Conversion' | 'Other';
   shares: number;
   value: number;
   sharesOwned?: number;
@@ -135,6 +135,8 @@ export interface InsiderTransaction {
   issuerName?: string;
   issuerTicker?: string;
   directOrIndirect?: 'D' | 'I';  // D=Direct ownership, I=Indirect
+  acquiredDisposed?: 'A' | 'D';  // A=Acquired, D=Disposed
+  isDerivative?: boolean;         // True for options, warrants, RSUs, etc.
 }
 
 export interface InsiderTradingAnalysis {

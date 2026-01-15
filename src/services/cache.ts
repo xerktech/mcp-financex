@@ -15,6 +15,11 @@ export const CacheTTL = {
   INDICATOR: parseInt(process.env.CACHE_INDICATOR_TTL || '300', 10),
   MARKET_SUMMARY: 60, // 1 minute
   INSIDER_TRADES: 3600, // 1 hour (insider data changes infrequently)
+  INSTITUTIONAL_HOLDINGS: 86400, // 24 hours (13F data filed quarterly)
+  OWNERSHIP_CHANGES: 3600, // 1 hour (13D/G filings)
+  MATERIAL_EVENTS: 1800, // 30 minutes (8-K filings - more frequent)
+  FINANCIALS: 86400, // 24 hours (financial statements change quarterly)
+  DCF: 3600, // 1 hour (DCF valuation depends on market price)
   CIK_MAPPING: 604800, // 7 days (CIKs don't change)
   COMPANY_TICKERS: 86400, // 24 hours (updated daily)
   DEFAULT: parseInt(process.env.CACHE_DEFAULT_TTL || '300', 10)
@@ -32,6 +37,11 @@ export const CachePrefix = {
   MARKET: 'market',
   WATCHLIST: 'watchlist',
   INSIDER_TRADES: 'insider_trades',
+  INSTITUTIONAL: 'institutional_holdings',
+  OWNERSHIP: 'ownership_changes',
+  MATERIAL_EVENTS: 'material_events',
+  FINANCIALS: 'financials',
+  DCF: 'dcf_valuation',
   CIK_MAP: 'cik_map',
   COMPANY_TICKERS: 'sec_company_tickers'
 } as const;
