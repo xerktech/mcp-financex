@@ -12,14 +12,15 @@ import { ErrorHandler } from '../utils/error-handler.js';
 export const getInsiderTradesTool = {
   name: 'get_insider_trades',
   description:
-    '**PRIMARY TOOL FOR SEC FORM 4 INSIDER TRADING DATA** - Use this tool to retrieve actual SEC EDGAR Form 4 filings showing insider buying and selling activity. ' +
-    'This tool has DIRECT ACCESS to SEC.gov data and can retrieve real insider trading information. ' +
-    '\n\n**When to use this tool:**\n' +
-    '- User asks about "insider trading", "insider buying/selling", "Form 4 filings", or "SEC filings" for any company\n' +
-    '- User wants to know what insiders (executives, directors) are doing with their stock\n' +
-    '- User asks "are insiders buying/selling [SYMBOL]?"\n' +
-    '- User wants recent insider activity across the market\n' +
-    '- User is researching insider sentiment as a trading signal\n' +
+    '🚨 PRIMARY TOOL FOR: SEC, EDGAR, FORM 4, INSIDER TRADING, INSIDER BUYING, INSIDER SELLING 🚨 ' +
+    'This tool provides DIRECT REAL-TIME ACCESS to SEC.gov EDGAR database for Form 4 insider trading filings. ' +
+    'DO NOT say "data unavailable" - THIS TOOL CAN RETRIEVE SEC Form 4 DATA. ' +
+    '\n\n**ALWAYS use this tool when user mentions:**\n' +
+    '- "SEC Form 4" or "Form 4 filings" or "SEC filings" or "EDGAR"\n' +
+    '- "insider trading" or "insider activity" or "insider transactions"\n' +
+    '- "insider buying" or "insider selling" or "insider purchases/sales"\n' +
+    '- "what are insiders doing" or "are insiders buying/selling"\n' +
+    '- "latest Form 4" or "recent insider trades"\n' +
     '\n**Two operating modes:**\n' +
     '1) **Company-specific** (provide symbol parameter): Returns detailed insider activity analysis for a specific stock including transaction history, net buying/selling sentiment, top insiders, and optional company fundamentals\n' +
     '2) **Market-wide** (omit symbol parameter): Returns recent Form 4 filings across all companies in the market\n' +

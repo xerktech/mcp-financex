@@ -19,7 +19,7 @@ export const getMarketNewsTool = {
     '- Analyst ratings and price targets ' +
     '- Upcoming events (earnings dates, dividends, splits) ' +
     '- Institutional ownership and top holders ' +
-    '- Insider transactions and net insider activity ' +
+    '- Insider summary (NOTE: For detailed SEC Form 4 filings, use get_insider_trades tool instead) ' +
     '- Short interest and options activity (volatility indicators) ' +
     '- Sector and industry context ' +
     'This comprehensive view helps LLMs understand factors affecting volatility and future price movements. ' +
