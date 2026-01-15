@@ -29,6 +29,12 @@ A comprehensive Model Context Protocol (MCP) server for real-time stock, cryptoc
 - **Max Pain Calculator**: Find the pin price where most options expire worthless
 - **Strategy Analyzer**: Analyze complex spreads, condors, butterflies with P&L charts
 
+### Real-Time & Market Intelligence (NEW!)
+- **Extended Hours Trading**: Track pre-market (4 AM - 9:30 AM ET) and after-hours (4 PM - 8 PM ET) price movements
+- **Short Interest Tracker**: Monitor short ratio (days to cover), short % of float, and short squeeze potential
+- **Analyst Ratings**: Track Wall Street consensus, target prices, rating distribution, and sentiment trends
+- **News Impact Analysis**: Correlate news events with price movements to identify significant market-moving events
+
 ### SEC Filings & Institutional Analysis (NEW!)
 - **Insider Trading (Forms 3/4/5)**: Track CEO, director, and 10% owner buying/selling with real transaction details
 - **Institutional Holdings (13F)**: Monitor hedge fund and institutional investor portfolios (Berkshire, Bridgewater, etc.)
@@ -711,6 +717,230 @@ Show me P&L chart for a covered call on TSLA at $250 strike
 - Combined Greeks for entire position
 - P&L chart (profit/loss at various prices)
 - Risk/reward ratio
+
+### 22. get_extended_hours_data
+
+Track pre-market and after-hours trading activity.
+
+**Input:**
+```json
+{
+  "symbol": "TSLA"
+}
+```
+
+**Example:**
+```
+What's Tesla trading at in pre-market?
+Show me after-hours price for AAPL
+Get extended hours data for NVDA
+```
+
+**Output:**
+```json
+{
+  "symbol": "TSLA",
+  "companyName": "Tesla, Inc.",
+  "currentSession": "pre-market",
+  "preMarket": {
+    "price": 185.50,
+    "change": 2.35,
+    "changePercent": 1.28,
+    "isActive": true
+  },
+  "regularMarket": {
+    "price": 183.15,
+    "change": -1.50,
+    "changePercent": -0.81,
+    "isOpen": false
+  },
+  "currentPrice": 185.50,
+  "currentChange": 2.35
+}
+```
+
+**Trading Sessions:**
+- **Pre-market**: 4:00 AM - 9:30 AM ET
+- **Regular**: 9:30 AM - 4:00 PM ET
+- **After-hours**: 4:00 PM - 8:00 PM ET
+
+### 23. get_short_interest
+
+Monitor short interest and short squeeze potential.
+
+**Input:**
+```json
+{
+  "symbol": "GME"
+}
+```
+
+**Example:**
+```
+What's the short interest for GameStop?
+Show me short squeeze potential for AMC
+How many days to cover short positions on TSLA?
+```
+
+**Output:**
+```json
+{
+  "symbol": "GME",
+  "companyName": "GameStop Corp.",
+  "shortInterest": {
+    "shortRatio": 7.5,
+    "shortPercentOfFloat": 22.3,
+    "sharesShort": 15420000,
+    "shortInterestChange": 1200000,
+    "shortInterestChangePercent": 8.4
+  },
+  "squeezeAnalysis": {
+    "risk": "high",
+    "score": 85,
+    "interpretation": "HIGH SQUEEZE RISK: high days to cover (7.5 days) and very high short interest (22.3% of float)"
+  }
+}
+```
+
+**Squeeze Risk Levels:**
+- **High**: Short ratio >10 days OR short % >30% (Score: 70-100)
+- **Medium**: Short ratio >3 days OR short % >15% (Score: 40-69)
+- **Low**: Lower short interest (Score: 0-39)
+
+### 24. get_analyst_ratings
+
+Track Wall Street analyst recommendations and target prices.
+
+**Input:**
+```json
+{
+  "symbol": "AAPL"
+}
+```
+
+**Example:**
+```
+What do analysts think about Apple?
+Show me analyst ratings for Microsoft
+What's the price target for NVDA?
+```
+
+**Output:**
+```json
+{
+  "symbol": "AAPL",
+  "companyName": "Apple Inc.",
+  "consensus": {
+    "rating": "buy",
+    "targetPrice": 195.50,
+    "targetPriceHigh": 225.00,
+    "targetPriceLow": 165.00,
+    "numberOfAnalysts": 42
+  },
+  "ratingDistribution": {
+    "strongBuy": 15,
+    "buy": 20,
+    "hold": 5,
+    "sell": 2,
+    "strongSell": 0,
+    "total": 42
+  },
+  "trend": {
+    "direction": "improving",
+    "bullishPercent": 83.3,
+    "bearishPercent": 4.8,
+    "description": "Strong bullish consensus with 83% buy ratings"
+  },
+  "priceComparison": {
+    "currentPrice": 178.50,
+    "upside": 9.5,
+    "upsideToHigh": 26.1
+  }
+}
+```
+
+**Consensus Ratings:**
+- **Buy**: >50% buy/strong buy ratings
+- **Hold**: Mixed opinions or 60%+ hold ratings
+- **Sell**: >50% sell/strong sell ratings
+
+### 25. analyze_news_impact
+
+Correlate news events with stock price movements.
+
+**Input:**
+```json
+{
+  "symbol": "TSLA",
+  "days_back": 30,
+  "news_limit": 20
+}
+```
+
+**Example:**
+```
+How does news affect Tesla's stock price?
+Which news had the biggest impact on AAPL?
+Analyze news correlation for Microsoft
+```
+
+**Output:**
+```json
+{
+  "symbol": "TSLA",
+  "companyName": "Tesla, Inc.",
+  "overallStatistics": {
+    "correlationStrength": "strong",
+    "significantImpacts": 5,
+    "averageImpact1Hour": 0.8,
+    "averageImpact1Day": 2.3,
+    "impactDistribution": {
+      "positiveNews": 12,
+      "negativeNews": 5,
+      "neutralNews": 3
+    }
+  },
+  "topImpactEvents": {
+    "mostPositiveImpact": {
+      "title": "Tesla Deliveries Beat Expectations",
+      "changePercent": 8.5,
+      "impactLevel": "significant"
+    },
+    "mostNegativeImpact": {
+      "title": "Production Delays Announced",
+      "changePercent": -5.2,
+      "impactLevel": "significant"
+    }
+  },
+  "newsImpacts": [
+    {
+      "news": {
+        "title": "Tesla Deliveries Beat Expectations",
+        "timestamp": "2024-01-10T14:30:00Z"
+      },
+      "priceChanges": {
+        "after1Hour": {
+          "changePercent": 1.2
+        },
+        "after1Day": {
+          "changePercent": 8.5
+        }
+      },
+      "impact": {
+        "level": "significant",
+        "score": 92,
+        "direction": "positive"
+      }
+    }
+  ]
+}
+```
+
+**Impact Classification:**
+- **Significant**: ≥5% price movement (Score: 70-100)
+- **Moderate**: 2-5% price movement (Score: 40-69)
+- **Minor**: 0.5-2% price movement (Score: 15-39)
+- **Negligible**: <0.5% price movement (Score: 0-14)
 
 ## Available Resources
 

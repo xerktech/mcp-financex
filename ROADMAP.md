@@ -28,19 +28,19 @@ A comprehensive roadmap for enhancing the MCP FinanceX server to provide more ac
 ## 🟠 Priority 2: Real-Time Data & Market Intelligence
 
 ### Market Microstructure
-- [ ] **Pre-market & after-hours data** - Extended trading session prices
-- [ ] **Level 2 order book** - Bid/ask spreads and depth
-- [ ] **Dark pool volume** - Off-exchange trading activity
-- [ ] **Short interest tracker** - Days-to-cover, squeeze potential
-- [ ] **Options flow** - Unusual options activity detector
-- [ ] **Block trades** - Large institutional transactions
+- [x] **Pre-market & after-hours data** - Extended trading session prices - Complete
+- [ ] **Level 2 order book** - Bid/ask spreads and depth - ⚠️ REQUIRES PAID API (market data subscription)
+- [ ] **Dark pool volume** - Off-exchange trading activity - ⚠️ REQUIRES PAID API (alternative data)
+- [x] **Short interest tracker** - Days-to-cover, squeeze potential - Complete
+- [ ] **Options flow** - Unusual options activity detector - ⚠️ REQUIRES PAID API (options data subscription)
+- [ ] **Block trades** - Large institutional transactions - ⚠️ REQUIRES PAID API (trade-level data)
 
 ### Sentiment & News Analysis
-- [ ] **News sentiment scoring** - AI-powered headline/article analysis
-- [ ] **Social media sentiment** - Reddit (WSB), Twitter/X, StockTwits
-- [ ] **News impact analysis** - Correlation between news and price movement
-- [ ] **Earnings call transcripts** - Extract key insights and guidance
-- [ ] **Analyst rating changes** - Track upgrades/downgrades with reasoning
+- [ ] **News sentiment scoring** - AI-powered headline/article analysis - ⚠️ REQUIRES PAID API (sentiment API) or local ML model
+- [ ] **Social media sentiment** - Reddit (WSB), Twitter/X, StockTwits - ⚠️ REQUIRES API KEYS (Reddit/Twitter/StockTwits)
+- [x] **News impact analysis** - Correlation between news and price movement - Complete
+- [ ] **Earnings call transcripts** - Extract key insights and guidance - ⚠️ REQUIRES PAID API (transcript service)
+- [x] **Analyst rating changes** - Track upgrades/downgrades with reasoning - Complete
 
 ---
 
@@ -256,8 +256,8 @@ A comprehensive roadmap for enhancing the MCP FinanceX server to provide more ac
 ### Phase 1 (Q1-Q2 2026): Foundation
 Focus on completing Priority 1 items to ensure data accuracy and reliability.
 
-### Phase 2 (Q2-Q3 2026): Real-Time Intelligence
-Implement Priority 2 and Priority 3 for actionable market insights.
+### Phase 2 (Q2-Q3 2026): Real-Time Intelligence ✅ PARTIALLY COMPLETE
+Priority 2 free features completed: Pre-market/after-hours data, short interest tracking, analyst ratings, and news impact analysis. Remaining features require paid APIs (marked in roadmap).
 
 ### Phase 3 (Q3-Q4 2026): Advanced Features
 Add Priority 4 and Priority 5 for sophisticated analysis capabilities.
