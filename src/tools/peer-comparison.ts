@@ -2,6 +2,7 @@
  * Peer Comparison Tool
  */
 
+import YahooFinance from 'yahoo-finance2';
 import { financialStatementsService } from '../services/financial-statements.js';
 import { yahooFinanceService } from '../services/yahoo-finance.js';
 import { ErrorHandler } from '../utils/error-handler.js';
@@ -83,10 +84,26 @@ export async function handleComparePeers(args: unknown) {
           financialStatementsService.getFinancialStatements(symbol, 'annual', 1)
         ]);
 
+        // Fetch additional metrics from quoteSummary
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let summary: any = null;
+        try {
+          summary = await YahooFinance.quoteSummary(symbol, {
+            modules: ['defaultKeyStatistics', 'summaryDetail', 'financialData']
+          });
+        } catch {
+          // Summary data not available, continue without it
+        }
+
         const ratios = financialStatementsService.calculateRatios(statements);
         const latestIncome = statements.incomeStatements[0];
         const latestBalance = statements.balanceSheets[0];
         const latestCashFlow = statements.cashFlowStatements[0];
+
+        // Extract additional metrics from summary
+        const stats = summary?.defaultKeyStatistics;
+        const detail = summary?.summaryDetail;
+        const financial = summary?.financialData;
 
         return {
           symbol: symbol.toUpperCase(),
@@ -95,12 +112,17 @@ export async function handleComparePeers(args: unknown) {
             // Market data
             marketCap: quote.marketCap,
             currentPrice: quote.regularMarketPrice,
+            beta: stats?.beta,
+            dividendYield: detail?.dividendYield ? detail.dividendYield * 100 : undefined,
 
             // Valuation metrics
             peRatio: quote.trailingPE,
             forwardPE: quote.forwardPE,
-            priceToBook: undefined,  // Not available in QuoteData
-            priceToSales: undefined, // Not available in QuoteData
+            priceToBook: stats?.priceToBook || detail?.priceToBook,
+            priceToSales: stats?.priceToSalesTrailing12Months,
+            evToEbitda: stats?.enterpriseToEbitda,
+            evToRevenue: stats?.enterpriseToRevenue,
+            pegRatio: stats?.pegRatio,
 
             // Profitability
             grossMargin: ratios.profitability.grossMargin,
@@ -111,6 +133,8 @@ export async function handleComparePeers(args: unknown) {
 
             // Growth (year-over-year if available)
             revenue: latestIncome?.revenue,
+            revenueGrowth: financial?.revenueGrowth ? financial.revenueGrowth * 100 : undefined,
+            earningsGrowth: financial?.earningsGrowth ? financial.earningsGrowth * 100 : undefined,
             netIncome: latestIncome?.netIncome,
             eps: latestIncome?.eps,
 
@@ -125,6 +149,8 @@ export async function handleComparePeers(args: unknown) {
 
             // Efficiency
             assetTurnover: ratios.efficiency.assetTurnover,
+            returnOnAssets: financial?.returnOnAssets ? financial.returnOnAssets * 100 : undefined,
+            returnOnEquity: financial?.returnOnEquity ? financial.returnOnEquity * 100 : undefined,
 
             // Earnings Quality
             qualityOfEarnings: ratios.earningsQuality.qualityOfEarnings,
@@ -135,10 +161,13 @@ export async function handleComparePeers(args: unknown) {
             totalLiabilities: latestBalance?.totalLiabilities,
             shareholdersEquity: latestBalance?.shareholdersEquity,
             cash: latestBalance?.cash,
+            totalDebt: stats?.totalDebt,
 
             // Cash flow
             operatingCashFlow: latestCashFlow?.operatingCashFlow,
-            freeCashFlow: latestCashFlow?.freeCashFlow
+            freeCashFlow: latestCashFlow?.freeCashFlow,
+            freeCashFlowPerShare: stats?.freeCashflow ?
+              (stats.freeCashflow / (stats.sharesOutstanding || 1)) : undefined
           }
         };
       } catch (error) {
@@ -182,10 +211,16 @@ export async function handleComparePeers(args: unknown) {
         'netMargin',
         'roe',
         'roa',
+        'returnOnAssets',
+        'returnOnEquity',
         'currentRatio',
         'interestCoverage',
         'qualityOfEarnings',
-        'cashConversionRate'
+        'cashConversionRate',
+        'revenueGrowth',
+        'earningsGrowth',
+        'freeCashFlow',
+        'dividendYield'
       ];
 
       metricsToRank.forEach(metric => {

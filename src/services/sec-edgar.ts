@@ -320,46 +320,57 @@ export class SECEdgarService {
    */
   private extractXmlUrlFromEntry(entry: RSSEntry): string | null {
     try {
-      // SEC RSS entries include an 'id' field with accession number
-      // Format: https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=XXXXX&type=4&dateb=&owner=include&start=0&count=100&accession_number=XXXX-XX-XXXXXX
+      const title = entry.title || '';
+      let accessionNumber = '';
+      let cik = '';
 
-      // Try to extract from ID field first
+      // Extract CIK from title - format: "4 - Company Name (CIK) (Filer)"
+      const cikMatch = title.match(/\((\d+)\)/);
+      if (cikMatch) {
+        cik = cikMatch[1].padStart(10, '0');
+      }
+
+      // Try to extract accession number from multiple sources
+
+      // 1. Try from ID field
       if (entry.id) {
-        const accessionMatch = entry.id.match(/accession[_-]number=([0-9-]+)/i);
-        if (accessionMatch) {
-          const accessionNumber = accessionMatch[1];
-          // Extract CIK from title or link
-          const title = entry.title || '';
-          const cikMatch = title.match(/\((\d+)\)/);
-          if (cikMatch) {
-            const cik = cikMatch[1];
-            // Remove dashes from accession number for directory path
-            const accessionNoDashes = accessionNumber.replace(/-/g, '');
-            // Construct XML URL
-            // Format: https://www.sec.gov/Archives/edgar/data/CIK/ACCESSION/ACCESSION-WITH-DASHES.xml
-            // or primary document
-            return `${SEC_BASE_URL}/Archives/edgar/data/${cik}/${accessionNoDashes}/${accessionNumber}.xml`;
-          }
+        const idAccessionMatch = entry.id.match(/(\d{10}-\d{2}-\d{6})/);
+        if (idAccessionMatch) {
+          accessionNumber = idAccessionMatch[1];
         }
       }
 
-      // Try to parse from summary or content
-      if (entry.summary && typeof entry.summary === 'string') {
-        const accessionMatch = entry.summary.match(/Accession Number:\s*([0-9-]+)/i);
-        if (accessionMatch) {
-          const accessionNumber = accessionMatch[1];
-          const title = entry.title || '';
-          const cikMatch = title.match(/\((\d+)\)/);
-          if (cikMatch) {
-            const cik = cikMatch[1];
-            const accessionNoDashes = accessionNumber.replace(/-/g, '');
-            return `${SEC_BASE_URL}/Archives/edgar/data/${cik}/${accessionNoDashes}/${accessionNumber}.xml`;
-          }
+      // 2. Try from link
+      if (!accessionNumber) {
+        let link = '';
+        if (typeof entry.link === 'string') {
+          link = entry.link;
+        } else if (entry.link && typeof entry.link === 'object') {
+          link = (entry.link as { '@_href'?: string; href?: string })['@_href'] ||
+                 (entry.link as { '@_href'?: string; href?: string })['href'] || '';
+        }
+
+        const linkAccessionMatch = link.match(/(\d{10}-\d{2}-\d{6})/);
+        if (linkAccessionMatch) {
+          accessionNumber = linkAccessionMatch[1];
         }
       }
 
-      // For now, return null to use fallback parsing method
-      // A full implementation would fetch the filing index page to get the actual document links
+      // 3. Try from summary
+      if (!accessionNumber && entry.summary && typeof entry.summary === 'string') {
+        const summaryAccessionMatch = entry.summary.match(/(\d{10}-\d{2}-\d{6})/);
+        if (summaryAccessionMatch) {
+          accessionNumber = summaryAccessionMatch[1];
+        }
+      }
+
+      // If we have both CIK and accession number, construct the XML URL
+      if (cik && accessionNumber) {
+        const accessionNoDashes = accessionNumber.replace(/-/g, '');
+        // Try the primary document XML format (most common for Form 4)
+        return `${SEC_BASE_URL}/Archives/edgar/data/${cik}/${accessionNoDashes}/xslF345X03/${accessionNumber}.xml`;
+      }
+
       return null;
     } catch {
       return null;
@@ -378,7 +389,14 @@ export class SECEdgarService {
     formType: '3' | '4' | '5' = '4'
   ): Promise<InsiderTransaction[]> {
     try {
-      const response = await throttledFetch(xmlUrl);
+      let response = await throttledFetch(xmlUrl);
+
+      // If the xslF345X03 subdirectory doesn't exist, try the root directory
+      if (!response.ok && xmlUrl.includes('/xslF345X03/')) {
+        const alternativeUrl = xmlUrl.replace('/xslF345X03/', '/');
+        response = await throttledFetch(alternativeUrl);
+      }
+
       if (!response.ok) {
         throw new Error(`Failed to fetch Form 4 XML: ${response.status}`);
       }

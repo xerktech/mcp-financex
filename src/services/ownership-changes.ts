@@ -302,15 +302,58 @@ export class OwnershipChangesService {
       const issuerName = titleMatch ? titleMatch[1].trim() : 'Unknown';
       const issuerCik = titleMatch ? titleMatch[2].trim() : '';
 
-      // For MVP, return basic filing info
-      // Full implementation would fetch and parse the actual 13D/G document
+      // Extract accession number from entry
+      let accessionNumber = '';
+
+      // Try from ID field
+      if (entry.id) {
+        const idMatch = (entry.id as string).match(/(\d{10}-\d{2}-\d{6})/);
+        if (idMatch) {
+          accessionNumber = idMatch[1];
+        }
+      }
+
+      // Try from link
+      if (!accessionNumber) {
+        const linkMatch = link.match(/(\d{10}-\d{2}-\d{6})/);
+        if (linkMatch) {
+          accessionNumber = linkMatch[1];
+        }
+      }
+
+      // Try to fetch and parse the actual 13D/G XML document
+      let reportingPersonName = 'Reporting Person';
+      let reportingPersonCik = '';
+      let reportingPersonAddress: string | undefined = undefined;
+      let percentOfClass = 0;
+      let shares = 0;
+      let votingPower: number | undefined = undefined;
+      let dispositivePower: number | undefined = undefined;
+      let purpose: string | undefined = undefined;
+
+      if (accessionNumber && issuerCik) {
+        try {
+          const ownershipData = await this.fetchAndParseOwnershipDocument(issuerCik, accessionNumber);
+          reportingPersonName = ownershipData.reportingPersonName || reportingPersonName;
+          reportingPersonCik = ownershipData.reportingPersonCik || reportingPersonCik;
+          reportingPersonAddress = ownershipData.reportingPersonAddress;
+          percentOfClass = ownershipData.percentOfClass || percentOfClass;
+          shares = ownershipData.shares || shares;
+          votingPower = ownershipData.votingPower;
+          dispositivePower = ownershipData.dispositivePower;
+          purpose = ownershipData.purpose;
+        } catch (error) {
+          console.warn(`Failed to fetch 13D/G document for ${accessionNumber}:`, error);
+        }
+      }
+
       return {
         formType,
         filingDate,
         reportingPerson: {
-          name: 'Reporting Person', // Would extract from filing
-          cik: '',
-          address: undefined
+          name: reportingPersonName,
+          cik: reportingPersonCik,
+          address: reportingPersonAddress
         },
         issuer: {
           name: issuerName,
@@ -318,20 +361,169 @@ export class OwnershipChangesService {
           cik: issuerCik
         },
         ownership: {
-          percentOfClass: 0, // Would extract from filing
-          shares: 0,
-          votingPower: undefined,
-          dispositivePower: undefined
+          percentOfClass,
+          shares,
+          votingPower,
+          dispositivePower
         },
-        purpose: undefined,
+        purpose,
         isAmendment,
         documentUrl: link.startsWith('http') ? link : `${SEC_BASE_URL}${link}`,
-        accessionNumber: ''
+        accessionNumber
       };
     } catch (error) {
       console.error('Failed to parse ownership entry:', error);
       return null;
     }
+  }
+
+  /**
+   * Fetch and parse 13D/G XML document to extract ownership details
+   */
+  private async fetchAndParseOwnershipDocument(cik: string, accessionNumber: string): Promise<{
+    reportingPersonName?: string;
+    reportingPersonCik?: string;
+    reportingPersonAddress?: string;
+    percentOfClass?: number;
+    shares?: number;
+    votingPower?: number;
+    dispositivePower?: number;
+    purpose?: string;
+  }> {
+    const accessionNoDashes = accessionNumber.replace(/-/g, '');
+    const paddedCik = cik.padStart(10, '0');
+
+    // Try to fetch the primary XML document
+    // 13D/G filings typically have the main document as .xml or .txt
+    const possibleUrls = [
+      `${SEC_BASE_URL}/Archives/edgar/data/${paddedCik}/${accessionNoDashes}/primary_doc.xml`,
+      `${SEC_BASE_URL}/Archives/edgar/data/${paddedCik}/${accessionNoDashes}/${accessionNumber}.xml`,
+      `${SEC_BASE_URL}/Archives/edgar/data/${paddedCik}/${accessionNoDashes}/sc13d.xml`,
+      `${SEC_BASE_URL}/Archives/edgar/data/${paddedCik}/${accessionNoDashes}/sc13g.xml`
+    ];
+
+    let xmlText = '';
+    for (const url of possibleUrls) {
+      try {
+        const response = await throttledFetch(url);
+        if (response.ok) {
+          xmlText = await response.text();
+          break;
+        }
+      } catch {
+        // Try next URL
+      }
+    }
+
+    if (!xmlText) {
+      throw new Error('Could not fetch 13D/G document');
+    }
+
+    // Parse the XML
+    const parsed = this.xmlParser.parse(xmlText);
+
+    // Extract data from the parsed XML
+    // 13D/G documents have various formats, try to extract common fields
+    const result: {
+      reportingPersonName?: string;
+      reportingPersonCik?: string;
+      reportingPersonAddress?: string;
+      percentOfClass?: number;
+      shares?: number;
+      votingPower?: number;
+      dispositivePower?: number;
+      purpose?: string;
+    } = {};
+
+    // Try to extract reporting person info
+    const ownershipDocument = parsed.ownershipDocument || parsed;
+
+    // Reporting owner info
+    const reportingOwner = ownershipDocument.reportingOwner || ownershipDocument.reportingPerson;
+    if (reportingOwner) {
+      const owner = Array.isArray(reportingOwner) ? reportingOwner[0] : reportingOwner;
+      result.reportingPersonName = owner.reportingOwnerId?.rptOwnerName ||
+                                   owner.name ||
+                                   owner.filingBy?.name;
+      result.reportingPersonCik = owner.reportingOwnerId?.rptOwnerCik ||
+                                  owner.cik;
+
+      // Extract address
+      const address = owner.reportingOwnerAddress || owner.address;
+      if (address) {
+        const parts = [
+          address.rptOwnerStreet1 || address.street1,
+          address.rptOwnerStreet2 || address.street2,
+          address.rptOwnerCity || address.city,
+          address.rptOwnerState || address.stateOrCountry,
+          address.rptOwnerZipCode || address.zipCode
+        ].filter(Boolean);
+        result.reportingPersonAddress = parts.join(', ');
+      }
+    }
+
+    // Ownership data (Item 5 in 13D/G)
+    const ownership = ownershipDocument.ownershipInfo ||
+                     ownershipDocument.item5 ||
+                     ownershipDocument.beneficialOwnership;
+
+    if (ownership) {
+      // Percent of class
+      const percentField = ownership.percentOfClass ||
+                          ownership.percent ||
+                          ownership.pctOfClass;
+      if (percentField) {
+        const percentStr = String(percentField).replace('%', '');
+        const percentNum = parseFloat(percentStr);
+        if (!isNaN(percentNum)) {
+          result.percentOfClass = percentNum;
+        }
+      }
+
+      // Number of shares
+      const sharesField = ownership.sharesOwned ||
+                         ownership.shares ||
+                         ownership.numberOfShares ||
+                         ownership.amount;
+      if (sharesField) {
+        const sharesNum = typeof sharesField === 'number' ? sharesField : parseFloat(String(sharesField).replace(/,/g, ''));
+        if (!isNaN(sharesNum)) {
+          result.shares = sharesNum;
+        }
+      }
+
+      // Voting power
+      const votingField = ownership.votingPower ||
+                         ownership.sharedVotingPower ||
+                         ownership.soleVotingPower;
+      if (votingField) {
+        const votingNum = typeof votingField === 'number' ? votingField : parseFloat(String(votingField).replace(/,/g, ''));
+        if (!isNaN(votingNum)) {
+          result.votingPower = votingNum;
+        }
+      }
+
+      // Dispositive power
+      const dispositiveField = ownership.dispositivePower ||
+                              ownership.sharedDispositivePower ||
+                              ownership.soleDispositivePower;
+      if (dispositiveField) {
+        const dispositiveNum = typeof dispositiveField === 'number' ? dispositiveField : parseFloat(String(dispositiveField).replace(/,/g, ''));
+        if (!isNaN(dispositiveNum)) {
+          result.dispositivePower = dispositiveNum;
+        }
+      }
+    }
+
+    // Purpose (Item 4 in 13D - purpose of transaction)
+    const purposeField = ownershipDocument.purpose ||
+                        ownershipDocument.item4 ||
+                        ownershipDocument.purposeOfTransaction;
+    if (purposeField) {
+      result.purpose = String(purposeField).substring(0, 500); // Limit length
+    }
+
+    return result;
   }
 }
 

@@ -70,11 +70,11 @@ export interface AnalystRatingData {
  */
 export class AnalystRatingsService {
   private cache: CacheService;
-  private yahooFinance: typeof YahooFinance;
+  private yahooFinance: InstanceType<typeof YahooFinance>;
 
   constructor() {
     this.cache = CacheService.getInstance();
-    this.yahooFinance = YahooFinance;
+    this.yahooFinance = new YahooFinance();
   }
 
   /**
@@ -89,13 +89,13 @@ export class AnalystRatingsService {
         return await withRetry(async () => {
           try {
             // Get both quote and quoteSummary for comprehensive data
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const quote = await this.yahooFinance.quote(symbol, {}, { validateResult: false }) as any;
+            const quote = await this.yahooFinance.quote(symbol, {}, { validateResult: false });
 
             // Try to get recommendation and financial data
-            let summary = null;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            let summary: any = null;
             try {
-              summary = await this.yahooFinance.quoteSummary(symbol, {
+              summary = await YahooFinance.quoteSummary(symbol, {
                 modules: ['recommendationTrend', 'financialData', 'price']
               });
             } catch {

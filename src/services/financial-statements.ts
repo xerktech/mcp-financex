@@ -6,8 +6,10 @@
  * with SEC filing references for verification
  */
 
+import YahooFinance from 'yahoo-finance2';
 import { yahooFinanceService } from './yahoo-finance.js';
 import { CacheService, CacheTTL, CachePrefix } from './cache.js';
+import { withRetry } from '../utils/error-handler.js';
 
 /**
  * Income statement data
@@ -112,35 +114,139 @@ export class FinancialStatementsService {
     return this.cache.getOrSet(
       cacheKey,
       async () => {
-        try {
-          // Fetch from Yahoo Finance (easier than parsing XBRL from SEC)
-          const quote = await yahooFinanceService.getQuote(symbol);
+        return await withRetry(async () => {
+          try {
+            // Fetch from Yahoo Finance
+            const quote = await yahooFinanceService.getQuote(symbol);
 
-          // Note: Full implementation would fetch historical financial data
-          // from Yahoo Finance API or parse SEC EDGAR XBRL files
-          // For MVP, return structure with note that data needs fetching
+            // Fetch financial data from quoteSummary
+            const modules = period === 'annual'
+              ? ['incomeStatementHistory', 'balanceSheetHistory', 'cashflowStatementHistory']
+              : ['incomeStatementHistoryQuarterly', 'balanceSheetHistoryQuarterly', 'cashflowStatementHistoryQuarterly'];
 
-          const statements: FinancialStatements = {
-            symbol: symbol.toUpperCase(),
-            companyName: quote.longName || quote.shortName || symbol,
-            currency: quote.currency || 'USD',
-            incomeStatements: [],
-            balanceSheets: [],
-            cashFlowStatements: [],
-            timestamp: new Date()
-          };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            let summary: any = null;
+            try {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              summary = await YahooFinance.quoteSummary(symbol, { modules: modules as any });
+            } catch (error) {
+              console.warn(`Failed to fetch financial statements for ${symbol}:`, error);
+            }
 
-          // In production, would fetch from:
-          // 1. Yahoo Finance quoteSummary module (financials, balance sheet, cash flow)
-          // 2. Or parse SEC EDGAR 10-K/10-Q XBRL files
-          // 3. Or use commercial API (Financial Modeling Prep, Alpha Vantage, etc.)
+            const statements: FinancialStatements = {
+              symbol: symbol.toUpperCase(),
+              companyName: quote.longName || quote.shortName || symbol,
+              currency: quote.currency || 'USD',
+              incomeStatements: [],
+              balanceSheets: [],
+              cashFlowStatements: [],
+              timestamp: new Date()
+            };
 
-          return statements;
-        } catch (error: unknown) {
-          const err = error as Error & { type?: string };
-          err.type = 'financials-error';
-          throw err;
-        }
+            if (!summary) {
+              return statements;
+            }
+
+            // Parse income statements
+            const incomeHistory = period === 'annual'
+              ? summary.incomeStatementHistory?.incomeStatementHistory
+              : summary.incomeStatementHistoryQuarterly?.incomeStatementHistory;
+
+            if (incomeHistory && Array.isArray(incomeHistory)) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              statements.incomeStatements = incomeHistory.slice(0, limit).map((stmt: any) => {
+                const endDate = stmt.endDate ? new Date(stmt.endDate) : new Date();
+                return {
+                  period,
+                  fiscalYear: endDate.getFullYear(),
+                  fiscalQuarter: period === 'quarterly' ? Math.floor(endDate.getMonth() / 3) + 1 : undefined,
+                  endDate,
+                  revenue: stmt.totalRevenue || 0,
+                  costOfRevenue: stmt.costOfRevenue,
+                  grossProfit: stmt.grossProfit,
+                  operatingExpenses: stmt.operatingExpense || stmt.totalOperatingExpenses,
+                  operatingIncome: stmt.operatingIncome,
+                  interestExpense: stmt.interestExpense,
+                  pretaxIncome: stmt.incomeBeforeTax,
+                  incomeTax: stmt.incomeTaxExpense,
+                  netIncome: stmt.netIncome || 0,
+                  eps: stmt.basicEPS || 0,
+                  ebitda: stmt.ebitda,
+                  depreciation: stmt.depreciation
+                } as IncomeStatement;
+              });
+            }
+
+            // Parse balance sheets
+            const balanceHistory = period === 'annual'
+              ? summary.balanceSheetHistory?.balanceSheetStatements
+              : summary.balanceSheetHistoryQuarterly?.balanceSheetStatements;
+
+            if (balanceHistory && Array.isArray(balanceHistory)) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              statements.balanceSheets = balanceHistory.slice(0, limit).map((stmt: any) => {
+                const endDate = stmt.endDate ? new Date(stmt.endDate) : new Date();
+                return {
+                  period,
+                  fiscalYear: endDate.getFullYear(),
+                  fiscalQuarter: period === 'quarterly' ? Math.floor(endDate.getMonth() / 3) + 1 : undefined,
+                  endDate,
+                  // Assets
+                  cash: stmt.cash || 0,
+                  shortTermInvestments: stmt.shortTermInvestments,
+                  accountsReceivable: stmt.netReceivables,
+                  inventory: stmt.inventory,
+                  currentAssets: stmt.totalCurrentAssets || 0,
+                  propertyPlantEquipment: stmt.propertyPlantEquipment,
+                  totalAssets: stmt.totalAssets || 0,
+                  // Liabilities
+                  accountsPayable: stmt.accountsPayable,
+                  shortTermDebt: stmt.shortLongTermDebt,
+                  currentLiabilities: stmt.totalCurrentLiabilities || 0,
+                  longTermDebt: stmt.longTermDebt || 0,
+                  totalLiabilities: stmt.totalLiab || 0,
+                  // Equity
+                  shareholdersEquity: stmt.totalStockholderEquity || 0,
+                  retainedEarnings: stmt.retainedEarnings,
+                  treasuryStock: stmt.treasuryStock
+                } as BalanceSheet;
+              });
+            }
+
+            // Parse cash flow statements
+            const cashFlowHistory = period === 'annual'
+              ? summary.cashflowStatementHistory?.cashflowStatements
+              : summary.cashflowStatementHistoryQuarterly?.cashflowStatements;
+
+            if (cashFlowHistory && Array.isArray(cashFlowHistory)) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              statements.cashFlowStatements = cashFlowHistory.slice(0, limit).map((stmt: any) => {
+                const endDate = stmt.endDate ? new Date(stmt.endDate) : new Date();
+                const ocf = stmt.totalCashFromOperatingActivities || 0;
+                const capex = Math.abs(stmt.capitalExpenditures || 0);
+                return {
+                  period,
+                  fiscalYear: endDate.getFullYear(),
+                  fiscalQuarter: period === 'quarterly' ? Math.floor(endDate.getMonth() / 3) + 1 : undefined,
+                  endDate,
+                  operatingCashFlow: ocf,
+                  capitalExpenditures: capex,
+                  freeCashFlow: ocf - capex,
+                  investingCashFlow: stmt.totalCashflowsFromInvestingActivities,
+                  financingCashFlow: stmt.totalCashFromFinancingActivities,
+                  netChangeInCash: stmt.changeInCash,
+                  stockBasedCompensation: stmt.stockBasedCompensation
+                } as CashFlowStatement;
+              });
+            }
+
+            return statements;
+          } catch (error: unknown) {
+            const err = error as Error & { type?: string };
+            err.type = 'financials-error';
+            throw err;
+          }
+        });
       },
       CacheTTL.FINANCIALS
     );
