@@ -22,40 +22,41 @@ on:
 jobs:
   test:
     name: Final Tests Before Publish
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
 
     steps:
+      - name: Reset workspace ownership
+        run: docker run --rm -v "$GITHUB_WORKSPACE":/workspace busybox chown -R "$(id -u):$(id -g)" /workspace 2>/dev/null || true
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-          cache: 'npm'
-          registry-url: 'https://registry.npmjs.org'
+      # npm isn't on the self-hosted runner: run the pre-publish gate
+      # (install/audit/build/test + pack dry-run) inside a throwaway
+      # node:20-alpine container (Docker Hub pull).
+      - name: Audit, build, test, verify package (node:20-alpine)
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE":/workspace -w /workspace \
+            node:20-alpine sh -c '
+              set -e
+              npm ci --no-audit --no-fund
+              npm audit --audit-level=high
+              npm run build
+              npm test
+              npm pack --dry-run
+            '
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run npm audit
-        run: npm audit --audit-level=high
-
-      - name: Build project
-        run: npm run build
-
-      - name: Run tests
-        run: npm test
-        continue-on-error: false
-
-      - name: Verify package contents
-        run: npm pack --dry-run
+      - name: Clean up
+        if: always()
+        run: |
+          docker image prune -f || true
+          df -h || true
 
   publish:
     name: Publish to NPM Registry
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     needs: test
     if: success()
 
@@ -64,33 +65,41 @@ jobs:
       id-token: write
 
     steps:
+      - name: Reset workspace ownership
+        run: docker run --rm -v "$GITHUB_WORKSPACE":/workspace busybox chown -R "$(id -u):$(id -g)" /workspace 2>/dev/null || true
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-          cache: 'npm'
-          registry-url: 'https://registry.npmjs.org'
-
+      # git IS on the runner (actions/checkout uses it); only node/npm are
+      # missing and get run inside throwaway node:20-alpine containers below.
       - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build project
-        run: npm run build
+      # npm/node aren't on the self-hosted runner. Install deps + build inside
+      # a throwaway node:20-alpine container (Docker Hub pull); the dist/
+      # output lands in the mounted workspace for the publish steps below.
+      - name: Install dependencies and build (node:20-alpine)
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE":/workspace -w /workspace \
+            node:20-alpine sh -c 'set -e; npm ci --no-audit --no-fund; npm run build'
 
       - name: Check if version needs update
         id: version_check
         run: |
+          set -euo pipefail
+          # node/npm live only in a throwaway container on this runner; shadow
+          # them with wrapper functions so the original logic is unchanged.
+          # The workspace is bind-mounted, so package.json edits persist on the
+          # host between calls.
+          node() { docker run --rm -v "$GITHUB_WORKSPACE":/workspace -w /workspace node:20-alpine node "$@"; }
+          npm()  { docker run --rm -v "$GITHUB_WORKSPACE":/workspace -w /workspace node:20-alpine npm  "$@"; }
+
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
           NPM_VERSION=$(npm view mcp-financex version 2>/dev/null || echo "0.0.0")
           echo "Current package.json version: $PACKAGE_VERSION"
@@ -130,6 +139,11 @@ jobs:
       - name: Bump version
         if: steps.version_check.outputs.needs_bump == 'true'
         run: |
+          set -euo pipefail
+          # Same container-backed node/npm wrappers as the version-check step.
+          node() { docker run --rm -v "$GITHUB_WORKSPACE":/workspace -w /workspace node:20-alpine node "$@"; }
+          npm()  { docker run --rm -v "$GITHUB_WORKSPACE":/workspace -w /workspace node:20-alpine npm  "$@"; }
+
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION_TYPE="${{ github.event.inputs.version }}"
           else
@@ -197,8 +211,9 @@ jobs:
       - name: Get current version
         if: steps.version_check.outputs.needs_bump == 'false'
         run: |
-          NEW_VERSION=$(node -p "require('./package.json').version")
-          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          set -euo pipefail
+          NEW_VERSION=$(docker run --rm -v "$GITHUB_WORKSPACE":/workspace -w /workspace node:20-alpine node -p "require('./package.json').version")
+          echo "NEW_VERSION=$NEW_VERSION" >> "$GITHUB_ENV"
 
       - name: Create GitHub Release
         uses: actions/create-release@v1
@@ -233,9 +248,35 @@ jobs:
         continue-on-error: true
 
       - name: Publish to NPM
-        run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          # npm isn't on the runner; publish from a throwaway node:20-alpine
+          # container. The registry auth token plus the GitHub OIDC / context
+          # env vars are forwarded so `npm publish --provenance` can mint its
+          # provenance attestation from inside the container (OIDC token
+          # request + sigstore are outbound HTTPS, which works from the
+          # container). See the workflow README / commit note: provenance on a
+          # self-hosted runner is not guaranteed; if it fails, drop
+          # `--provenance`.
+          docker run --rm \
+            -e NODE_AUTH_TOKEN \
+            -e ACTIONS_ID_TOKEN_REQUEST_URL \
+            -e ACTIONS_ID_TOKEN_REQUEST_TOKEN \
+            -e GITHUB_ACTIONS -e GITHUB_WORKFLOW -e GITHUB_WORKFLOW_REF \
+            -e GITHUB_RUN_ID -e GITHUB_RUN_ATTEMPT -e GITHUB_RUN_NUMBER \
+            -e GITHUB_REPOSITORY -e GITHUB_REPOSITORY_ID \
+            -e GITHUB_REPOSITORY_OWNER -e GITHUB_REPOSITORY_OWNER_ID \
+            -e GITHUB_REF -e GITHUB_REF_NAME -e GITHUB_SHA \
+            -e GITHUB_EVENT_NAME -e GITHUB_SERVER_URL -e GITHUB_API_URL \
+            -e GITHUB_JOB -e RUNNER_ENVIRONMENT \
+            -v "$GITHUB_WORKSPACE":/workspace -w /workspace \
+            node:20-alpine sh -c '
+              set -e
+              npm config set //registry.npmjs.org/:_authToken "${NODE_AUTH_TOKEN}"
+              npm publish --provenance --access public
+            '
 
       - name: Push version bump to main
         if: steps.version_check.outputs.needs_bump == 'true'
@@ -246,7 +287,7 @@ jobs:
         continue-on-error: true
 
       - name: Create package tarball
-        run: npm pack
+        run: docker run --rm -v "$GITHUB_WORKSPACE":/workspace -w /workspace node:20-alpine npm pack
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
@@ -280,9 +321,20 @@ jobs:
           echo '}' >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
+      # This job builds the package (tsc) and produces a root-owned tarball in
+      # the shared runner workspace via the container steps. Remove the tarball
+      # and sweep dangling images so the persistent runner disk doesn't fill
+      # across releases. Never fails the job.
+      - name: Clean up build artifacts and images
+        if: always()
+        run: |
+          rm -f "$GITHUB_WORKSPACE"/*.tgz 2>/dev/null || true
+          docker image prune -f || true
+          df -h || true
+
   notify-failure:
     name: Notify on Failure
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     needs: [test, publish]
     if: failure()
 

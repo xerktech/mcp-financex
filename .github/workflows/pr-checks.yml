@@ -9,56 +9,61 @@ on:
 jobs:
   security-and-quality:
     name: Security & Code Quality
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
 
     strategy:
       matrix:
-        node-version: [18.x, 20.x, 22.x]
+        node-version: ['18', '20', '22']
 
     steps:
+      # Docker steps below run as root and leave root-owned files in the
+      # persistent/shared runner workspace; reset ownership up front so
+      # checkout and later steps aren't blocked by a prior run's leftovers.
+      - name: Reset workspace ownership
+        run: docker run --rm -v "$GITHUB_WORKSPACE":/workspace busybox chown -R "$(id -u):$(id -g)" /workspace 2>/dev/null || true
+
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+      # Secret scan runs before dependencies are installed so trufflehog
+      # doesn't crawl node_modules. The self-hosted runner can't authenticate
+      # to ghcr.io, so we run trufflehog from its Docker Hub image directly
+      # instead of the trufflesecurity/trufflehog action (a ghcr-based Docker
+      # action). --only-verified --fail keeps the original gate: a verified
+      # secret fails the job.
+      - name: Check for secrets (trufflehog)
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE":/workspace \
+            trufflesecurity/trufflehog:latest \
+            filesystem /workspace --only-verified --fail
 
-      - name: Install dependencies
-        run: npm ci
+      # npm isn't installed on the self-hosted runner, so the whole npm
+      # workflow (install/audit/build/test/format/lint) runs inside a
+      # throwaway node:<matrix>-alpine container (Docker Hub pull), mirroring
+      # AgentHub's glasses-ci.yml. Informational checks (outdated, formatting)
+      # keep their original non-blocking behaviour with `|| true`;
+      # audit/build/test/lint stay hard gates via `set -e`.
+      - name: Install, audit, build, test, lint (node ${{ matrix.node-version }})
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE":/workspace -w /workspace \
+            node:${{ matrix.node-version }}-alpine sh -c '
+              set -e
+              npm ci --no-audit --no-fund
+              npm audit --audit-level=high
+              npm outdated || true
+              npm run build
+              npm test
+              npm run format -- --check || true
+              npm run lint
+            '
 
-      - name: Run npm audit (High/Critical only)
-        run: npm audit --audit-level=high
-        continue-on-error: false
-
-      - name: Check for outdated dependencies
-        run: npm outdated || true
-        continue-on-error: true
-
-      - name: TypeScript compilation check
-        run: npm run build
-        continue-on-error: false
-
-      - name: Run tests
-        run: npm test
-        continue-on-error: false
-
-      - name: Check code formatting
-        run: npm run format -- --check
-        continue-on-error: true
-
-      - name: Run ESLint
-        run: npm run lint
-        continue-on-error: false
-
-      - name: Check for secrets
-        uses: trufflesecurity/trufflehog@main
-        with:
-          path: ./
-          base: ${{ github.event.repository.default_branch }}
-          head: HEAD
-          extra_args: --debug --only-verified
+      # Sweep dangling layers the container work left behind so the shared
+      # runner disk stays at a steady state. Never fails the job.
+      - name: Clean up
+        if: always()
+        run: |
+          docker image prune -f || true
+          df -h || true
 
   # dependency-review:
   #   name: Dependency Review
@@ -106,57 +111,77 @@ jobs:
 
   trivy-security:
     name: Trivy Security Scan
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     continue-on-error: true
 
     steps:
+      - name: Reset workspace ownership
+        run: docker run --rm -v "$GITHUB_WORKSPACE":/workspace busybox chown -R "$(id -u):$(id -g)" /workspace 2>/dev/null || true
+
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'table'
-          severity: 'HIGH,CRITICAL'
-          exit-code: '1'
+      # The aquasecurity/trivy-action pins an internal setup step to a mutable
+      # upstream tag that has been deleted, and the self-hosted runner has no
+      # passwordless sudo, so Trivy is installed from its release tarball into
+      # $HOME/.local/bin + $GITHUB_PATH — the sibling repos' proven no-sudo
+      # pattern (AgentHub/SwitchBoard security jobs).
+      - name: Install Trivy
+        run: |
+          set -euo pipefail
+          VERSION=0.70.0
+          curl -fsSL -o /tmp/trivy.tgz \
+            "https://github.com/aquasecurity/trivy/releases/download/v${VERSION}/trivy_${VERSION}_Linux-64bit.tar.gz"
+          mkdir -p "$HOME/.local/bin"
+          tar -xzf /tmp/trivy.tgz -C "$HOME/.local/bin" trivy
+          chmod +x "$HOME/.local/bin/trivy"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/trivy" --version
+
+      # Findings print to the job log; --exit-code 1 fails the job on
+      # CRITICAL/HIGH (this job is continue-on-error, so it never blocks the
+      # PR). --ignore-unfixed keeps the gate actionable, matching the sibling
+      # repos' Trivy filesystem scan.
+      - name: Run Trivy filesystem scan
+        run: |
+          set -euo pipefail
+          trivy fs . \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --exit-code 1 \
+            --no-progress
 
   build-test:
     name: Build & Package Test
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
 
     steps:
+      - name: Reset workspace ownership
+        run: docker run --rm -v "$GITHUB_WORKSPACE":/workspace busybox chown -R "$(id -u):$(id -g)" /workspace 2>/dev/null || true
+
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build project
-        run: npm run build
-
-      - name: Verify dist/ directory exists
+      # npm isn't on the self-hosted runner: build the project and produce
+      # the package tarball inside a throwaway node:20-alpine container
+      # (Docker Hub pull). dist/ and the .tgz land in the mounted workspace
+      # for actions/upload-artifact to collect.
+      - name: Build and pack (node:20-alpine)
         run: |
-          if [ ! -d "dist" ]; then
-            echo "Error: dist/ directory not found after build"
-            exit 1
-          fi
-          echo "Build successful - dist/ directory created"
-
-      - name: Create package tarball
-        run: npm pack
-
-      - name: Test package installation
-        run: |
-          tar -tzf mcp-financex-*.tgz
-          echo "Package contents verified"
+          docker run --rm -v "$GITHUB_WORKSPACE":/workspace -w /workspace \
+            node:20-alpine sh -c '
+              set -e
+              npm ci --no-audit --no-fund
+              npm run build
+              if [ ! -d dist ]; then
+                echo "Error: dist/ directory not found after build"
+                exit 1
+              fi
+              echo "Build successful - dist/ directory created"
+              npm pack
+              tar -tzf mcp-financex-*.tgz
+              echo "Package contents verified"
+            '
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -167,9 +192,20 @@ jobs:
             *.tgz
           retention-days: 7
 
+      # The build runs as root in the container, leaving a root-owned tarball
+      # (plus dist/) in the shared runner workspace. Remove the tarball and
+      # sweep dangling images so the persistent runner disk doesn't accumulate
+      # package output across runs. Never fails the job.
+      - name: Clean up build artifacts
+        if: always()
+        run: |
+          rm -f "$GITHUB_WORKSPACE"/*.tgz 2>/dev/null || true
+          docker image prune -f || true
+          df -h || true
+
   pr-summary:
     name: PR Summary
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     needs: [security-and-quality, build-test]
     if: always()
 
