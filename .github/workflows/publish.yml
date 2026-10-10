@@ -248,12 +248,14 @@ jobs:
       - name: Create package tarball
         run: npm pack
 
-      - name: Upload package artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: npm-package-v${{ env.NEW_VERSION }}
-          path: mcp-financex-*.tgz
-          retention-days: 90
+      # Attach the tarball to the GitHub Release rather than keeping it as an Actions
+      # artifact: release assets don't count against the org's shared Actions storage
+      # quota (XERK-1796). Non-fatal like the release step it depends on.
+      - name: Attach package to GitHub Release
+        run: gh release upload "v${NEW_VERSION}" mcp-financex-*.tgz --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
 
       - name: Publish Summary
         run: |
