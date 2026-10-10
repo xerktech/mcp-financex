@@ -165,7 +165,7 @@ jobs:
           path: |
             dist/
             *.tgz
-          retention-days: 7
+          retention-days: 3
 
   pr-summary:
     name: PR Summary
